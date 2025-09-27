@@ -2,7 +2,8 @@ import type { Task, User, Role, TaskStatus } from "@/lib/data";
 import type { Dispatch } from "react";
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { format, isPast } from 'date-fns';
+import { isPast } from 'date-fns';
+import { format, utcToZonedTime } from 'date-fns-tz';
 import { cn } from "@/lib/utils";
 import { CalendarIcon, ChevronLeft, ChevronRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -44,6 +45,8 @@ export default function TaskCard({ task, dispatch, users, userRole, projectId }:
         }
     };
 
+    const formattedDate = format(utcToZonedTime(dueDate, 'UTC'), 'MMM d', { timeZone: 'UTC' });
+
     return (
         <Card className="bg-background shadow-md hover:shadow-lg transition-shadow">
             <CardHeader className="p-4">
@@ -53,7 +56,7 @@ export default function TaskCard({ task, dispatch, users, userRole, projectId }:
                 <div className="flex items-center justify-between text-sm text-muted-foreground">
                     <div className={cn("flex items-center gap-2", isOverdue && "text-destructive font-medium")}>
                         <CalendarIcon className="h-4 w-4" />
-                        <span>{format(dueDate, 'MMM d')}</span>
+                        <span>{formattedDate}</span>
                     </div>
                     {assignee && (
                         <Avatar className="h-6 w-6">
