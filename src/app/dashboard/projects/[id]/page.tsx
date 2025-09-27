@@ -27,7 +27,7 @@ export default async function ProjectPage({ params }: ProjectPageProps) {
     const isCollaborator = projectData.collaborators.some(c => c.userId.toString() === session.user.id);
     if (!isOwner && !isCollaborator) {
         redirect('/dashboard');
-        return; // This is the critical fix
+        return;
     }
 
     const tasksData = await getTasksByProjectId(params.id);
