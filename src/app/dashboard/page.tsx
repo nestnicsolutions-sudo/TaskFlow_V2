@@ -3,6 +3,7 @@ import ProjectList from "@/components/dashboard/project-list";
 import { getSession } from "@/lib/auth";
 import { redirect } from "next/navigation";
 import type { Project, User } from "@/lib/data";
+import CreateProjectButton from "@/components/dashboard/create-project-button";
 
 export default async function DashboardPage() {
   const session = await getSession();
@@ -14,18 +15,23 @@ export default async function DashboardPage() {
   const usersData = await getUsers();
 
   const projects: Project[] = projectsData.map((p: any) => ({
-    ...p,
-    id: p._id.toString(),
-    ownerId: p.ownerId.toString(),
+    id: p.id,
+    name: p.name,
+    description: p.description,
+    ownerId: p.ownerId,
     collaborators: p.collaborators.map((c: any) => ({
-      ...c,
-      userId: c.userId.toString(),
+      userId: c.userId,
+      role: c.role,
     })),
+    createdAt: p.createdAt,
   }));
 
   const users: User[] = usersData.map((u: any) => ({
-    ...u,
-    id: u._id.toString(),
+    id: u.id,
+    name: u.name,
+    email: u.email,
+    avatarUrl: u.avatarUrl,
+    createdAt: u.createdAt,
   }));
 
   return (
