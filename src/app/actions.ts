@@ -28,11 +28,17 @@ export async function getProjects() {
 }
 
 export async function getProjectById(id: string) {
+    if (!ObjectId.isValid(id)) {
+        return null;
+    }
     const db = await getDb();
     return db.collection('projects').findOne({ _id: new ObjectId(id) });
 }
 
 export async function getTasksByProjectId(projectId: string) {
+    if (!ObjectId.isValid(projectId)) {
+        return [];
+    }
     const db = await getDb();
     return db.collection('tasks').find({ projectId: new ObjectId(projectId) }).toArray();
 }
@@ -48,8 +54,8 @@ export async function createProject(formData: FormData) {
     const description = formData.get("description") as string;
     const ownerId = formData.get("ownerId") as string;
 
-    if (!ownerId) {
-        throw new Error("Authentication required: No owner ID provided.");
+    if (!ownerId || !ObjectId.isValid(ownerId)) {
+        throw new Error("Authentication required: No or invalid owner ID provided.");
     }
 
     const { db } = await connectToDatabase();
@@ -77,6 +83,10 @@ export async function createTask(formData: FormData) {
     const assigneeId = formData.get('assigneeId') as string;
     const dueDate = formData.get('dueDate') as string;
 
+    if (!ObjectId.isValid(projectId) || !ObjectId.isValid(assigneeId)) {
+        throw new Error("Invalid project or assignee ID");
+    }
+
     const db = await getDb();
     const result = await db.collection('tasks').insertOne({
         projectId: new ObjectId(projectId),
@@ -93,6 +103,9 @@ export async function createTask(formData: FormData) {
 }
 
 export async function updateTaskStatus(taskId: string, newStatus: TaskStatus, projectId: string) {
+    if (!ObjectId.isValid(taskId)) {
+        return null;
+    }
     const db = await getDb();
     const result = await db.collection('tasks').updateOne(
         { _id: new ObjectId(taskId) },
@@ -108,6 +121,9 @@ export async function updateTaskStatus(taskId: string, newStatus: TaskStatus, pr
 }
 
 export async function inviteCollaborator(projectId: string, userId: string, role: 'editor' | 'viewer') {
+    if (!ObjectId.isValid(projectId) || !ObjectId.isValid(userId)) {
+        return { success: false, message: "Invalid project or user ID." };
+    }
     const db = await getDb();
     const project = await db.collection('projects').findOne({ _id: new ObjectId(projectId) });
 
