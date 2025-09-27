@@ -1,4 +1,4 @@
-import { getProjects, getUsers } from "@/app/actions";
+import { getProjects, getUsers, createProject } from "@/app/actions";
 import ProjectList from "@/components/dashboard/project-list";
 import { Button } from "@/components/ui/button";
 import {
@@ -13,12 +13,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { getSession } from "@/lib/auth";
-import { connectToDatabase } from "@/lib/mongodb";
 import { Plus } from "lucide-react";
-import { ObjectId } from "mongodb";
-import { revalidatePath } from "next/cache";
-import { redirect } from "next/navigation";
 
 export default async function DashboardPage() {
   const projectsData = await getProjects();
@@ -40,35 +35,6 @@ export default async function DashboardPage() {
     _id: u._id.toString(),
   }));
 
-  async function createProjectAction(formData: FormData) {
-    "use server";
-    const session = await getSession();
-    if (!session) {
-      throw new Error("Authentication required");
-    }
-
-    const name = formData.get("name") as string;
-    const description = formData.get("description") as string;
-
-    const { db } = await connectToDatabase();
-    const result = await db.collection("projects").insertOne({
-      name,
-      description,
-      ownerId: new ObjectId(session.user.id),
-      collaborators: [],
-      createdAt: new Date(),
-    });
-
-    const newProject = await db
-      .collection("projects")
-      .findOne({ _id: result.insertedId });
-    
-    if (newProject) {
-        revalidatePath("/dashboard");
-        redirect(`/dashboard/projects/${newProject._id.toString()}`);
-    }
-  }
-
   return (
     <div className="container mx-auto">
       <div className="flex items-center justify-between">
@@ -88,7 +54,7 @@ export default async function DashboardPage() {
             </Button>
           </DialogTrigger>
           <DialogContent className="sm:max-w-[425px]">
-            <form action={createProjectAction}>
+            <form action={createProject}>
               <DialogHeader>
                 <DialogTitle>Create New Project</DialogTitle>
                 <DialogDescription>

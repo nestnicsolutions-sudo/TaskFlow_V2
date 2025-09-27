@@ -6,6 +6,7 @@ import { Project, Task, TaskStatus, User } from "@/lib/data";
 import { connectToDatabase } from "@/lib/mongodb";
 import { ObjectId } from "mongodb";
 import { getSession } from "@/lib/auth";
+import { redirect } from "next/navigation";
 
 async function getDb() {
     const { db } = await connectToDatabase();
@@ -47,21 +48,27 @@ export async function createProject(formData: FormData) {
     if (!session) {
         throw new Error("Authentication required");
     }
-    const name = formData.get('name') as string;
-    const description = formData.get('description') as string;
-    
-    const db = await getDb();
-    const result = await db.collection('projects').insertOne({
-        name,
-        description,
-        ownerId: new ObjectId(session.user.id),
-        collaborators: [],
-        createdAt: new Date(),
+
+    const name = formData.get("name") as string;
+    const description = formData.get("description") as string;
+
+    const { db } = await connectToDatabase();
+    const result = await db.collection("projects").insertOne({
+      name,
+      description,
+      ownerId: new ObjectId(session.user.id),
+      collaborators: [],
+      createdAt: new Date(),
     });
+
+    const newProject = await db
+      .collection("projects")
+      .findOne({ _id: result.insertedId });
     
-    revalidatePath("/dashboard");
-    const newProject = await db.collection('projects').findOne({ _id: result.insertedId });
-    return JSON.parse(JSON.stringify(newProject));
+    if (newProject) {
+        revalidatePath("/dashboard");
+        redirect(`/dashboard/projects/${newProject._id.toString()}`);
+    }
 }
 
 export async function createTask(formData: FormData) {
