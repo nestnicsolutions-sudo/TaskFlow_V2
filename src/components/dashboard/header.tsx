@@ -18,7 +18,7 @@ export default function Header({ user }: { user: { name?: string | null, email?:
     return (
         <header className="sticky top-0 z-10 flex h-16 items-center gap-4 border-b bg-background/80 px-4 backdrop-blur md:px-6">
             <SidebarTrigger className="md:hidden" />
-            <div className="flex w-full items-center justify-end gap-4">
+            <div className="flex w-full items-center justify-end gap-2 md:gap-4">
                 <Button variant="ghost" size="icon">
                     <Bell className="h-5 w-5" />
                     <span className="sr-only">Toggle notifications</span>
