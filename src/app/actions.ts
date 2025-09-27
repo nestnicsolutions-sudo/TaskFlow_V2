@@ -49,6 +49,7 @@ export async function getProjectById(id: string) {
     return {
         ...project,
         id: project._id.toString(),
+        _id: project._id.toString(),
         ownerId: project.ownerId.toString(),
         collaborators: project.collaborators.map((c:any) => ({
             ...c,
@@ -66,6 +67,8 @@ export async function getTasksByProjectId(projectId: string) {
     return tasks.map(t => ({
         ...t,
         id: t._id.toString(),
+        _id: t._id.toString(),
+        projectId: t.projectId.toString(),
         assigneeId: t.assigneeId?.toString(),
     }));
 }
@@ -77,13 +80,14 @@ export async function getUsers(): Promise<User[]> {
     return users.map(u => ({
         ...u,
         id: u._id.toString(),
+        _id: u._id.toString(),
     })) as User[];
 }
 
 export async function createProject(formData: FormData) {
     const session = await getSession();
     const ownerId = formData.get("userId") as string;
-    if (!session?.user?.id || !ownerId) {
+    if (!session?.user?.id || !ownerId || session.user.id !== ownerId) {
       throw new Error("Authentication required");
     }
 
@@ -111,8 +115,8 @@ export async function createProject(formData: FormData) {
       .collection("projects")
       .findOne({ _id: result.insertedId });
     
+    revalidatePath("/dashboard");
     if (newProject) {
-        revalidatePath("/dashboard");
         redirect(`/dashboard/projects/${newProject._id.toString()}`);
     }
 }

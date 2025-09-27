@@ -17,25 +17,26 @@ export default async function ProjectPage({ params }: ProjectPageProps) {
     }
 
     const projectData = await getProjectById(params.id);
+    
     if (!projectData) {
         notFound();
     }
-    const tasksData = await getTasksByProjectId(params.id);
-    const usersData = await getUsers();
-
-    // Ensure the current user is part of the project, otherwise deny access
-    const isCollaborator = projectData.collaborators.some(c => c.userId.toString() === session.user.id);
-    const isOwner = projectData.ownerId.toString() === session.user.id;
+    
+    // Authorization check
+    const isOwner = projectData.ownerId === session.user.id;
+    const isCollaborator = projectData.collaborators.some(c => c.userId === session.user.id);
     if (!isOwner && !isCollaborator) {
         notFound();
     }
 
+    const tasksData = await getTasksByProjectId(params.id);
+    const usersData = await getUsers();
+
     // Convert all data to plain objects for client components
     const project: Project = {
+        ...projectData,
         id: projectData.id.toString(),
         _id: projectData._id.toString(),
-        name: projectData.name,
-        description: projectData.description,
         ownerId: projectData.ownerId.toString(),
         collaborators: projectData.collaborators.map((c: any) => ({
             userId: c.userId.toString(),

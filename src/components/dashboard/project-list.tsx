@@ -8,14 +8,14 @@ import { Users, FolderKanban } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 
 export default function ProjectList({ initialProjects, users }: { initialProjects: any[], users: User[] }) {
-    const getUserById = (id: string) => users.find(u => u._id === id);
+    const getUserById = (id: string) => users.find(u => u.id === id);
 
     return (
         <div className="space-y-8 mt-8">
             {initialProjects.length > 0 ? (
                 <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
                     {initialProjects.map((project) => (
-                        <Card key={project._id} className="flex flex-col">
+                        <Card key={project.id} className="flex flex-col">
                             <CardHeader>
                                 <CardTitle className="font-headline flex items-center gap-2">
                                   <FolderKanban className="h-5 w-5 text-primary"/> 
@@ -32,7 +32,7 @@ export default function ProjectList({ initialProjects, users }: { initialProject
                                     { [project.ownerId, ...project.collaborators.map((c: any) => c.userId)].slice(0, 5).map((userId: string) => {
                                         const user = getUserById(userId);
                                         return user ? (
-                                            <Avatar key={user._id} className="inline-block h-8 w-8 rounded-full ring-2 ring-background">
+                                            <Avatar key={user.id} className="inline-block h-8 w-8 rounded-full ring-2 ring-background">
                                                 <AvatarImage src={user.avatarUrl} />
                                                 <AvatarFallback>{user.name.charAt(0)}</AvatarFallback>
                                             </Avatar>
@@ -42,7 +42,7 @@ export default function ProjectList({ initialProjects, users }: { initialProject
                             </CardContent>
                             <CardFooter>
                                 <Button asChild className="w-full" variant="outline">
-                                    <Link href={`/dashboard/projects/${project._id}`}>View Project</Link>
+                                    <Link href={`/dashboard/projects/${project.id}`}>View Project</Link>
                                 </Button>
                             </CardFooter>
                         </Card>

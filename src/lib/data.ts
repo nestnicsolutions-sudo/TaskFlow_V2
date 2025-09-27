@@ -5,31 +5,31 @@ export type Role = 'admin' | 'editor' | 'viewer';
 
 export type Task = {
     id: string; // Used on client
-    _id: ObjectId; // From DB
-    projectId: ObjectId;
+    _id: string; // From DB
+    projectId: string;
     title: string;
     status: TaskStatus;
-    assigneeId?: string | ObjectId;
+    assigneeId?: string;
     dueDate: Date;
 };
 
 export type Collaborator = {
-    userId: string | ObjectId;
+    userId: string;
     role: Role;
 };
 
 export type Project = {
     id: string; // Used on client
-    _id: ObjectId; // From DB
+    _id: string; // From DB
     name: string;
     description: string;
-    ownerId: string | ObjectId;
+    ownerId: string;
     collaborators: Collaborator[];
 };
 
 export type User = {
     id: string; // Used on client
-    _id: ObjectId; // From DB
+    _id: string; // From DB
     name: string;
     email: string;
     password?: string;
