@@ -1,10 +1,11 @@
+'use server';
 import { ai } from '../genkit';
 import { z } from 'zod';
 
 // This is a mock implementation of the AI flow.
 // In a real application, this would use a generative model to suggest tasks.
 
-export const suggestTasks = ai.flow(
+export const suggestTasks = ai.defineFlow(
   {
     name: 'suggestTasks',
     inputSchema: z.object({
