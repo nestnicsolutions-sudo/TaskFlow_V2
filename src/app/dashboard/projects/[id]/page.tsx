@@ -24,8 +24,8 @@ export default async function ProjectPage({ params }: ProjectPageProps) {
     const usersData = await getUsers();
 
     // Ensure the current user is part of the project, otherwise deny access
-    const isCollaborator = projectData.collaborators.some(c => c.userId === session.user.id);
-    const isOwner = projectData.ownerId === session.user.id;
+    const isCollaborator = projectData.collaborators.some(c => c.userId.toString() === session.user.id);
+    const isOwner = projectData.ownerId.toString() === session.user.id;
     if (!isOwner && !isCollaborator) {
         notFound();
     }
