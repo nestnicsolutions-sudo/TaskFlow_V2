@@ -21,7 +21,10 @@ const tasksReducer = (state: Task[], action: Action): Task[] => {
                     : task
             );
         case 'ADD_TASK':
-             if (state.some(t => t.id === action.payload.id)) return state;
+            // Prevent adding duplicate tasks
+            if (state.some(t => t.id === action.payload.id)) {
+                return state;
+            }
             return [...state, action.payload];
         default:
             return state;

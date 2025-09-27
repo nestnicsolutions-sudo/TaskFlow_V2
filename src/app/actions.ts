@@ -19,20 +19,42 @@ export async function getProjects() {
         return [];
     }
     const db = await getDb();
-    return db.collection('projects').find({
+    const projects = await db.collection('projects').find({
         $or: [
             { ownerId: new ObjectId(session.user.id) },
             { 'collaborators.userId': new ObjectId(session.user.id) }
         ]
     }).toArray();
+
+    return projects.map(p => ({
+        ...p,
+        id: p._id.toString(),
+        ownerId: p.ownerId.toString(),
+        collaborators: p.collaborators.map((c: any) => ({
+            ...c,
+            userId: c.userId.toString(),
+        })),
+    }));
 }
 
-export async function getProjectById(id: string) {
+export async function getProjectById(id: string): Promise<Project | null> {
     if (!ObjectId.isValid(id)) {
         return null;
     }
     const db = await getDb();
-    return db.collection('projects').findOne({ _id: new ObjectId(id) });
+    const project = await db.collection('projects').findOne({ _id: new ObjectId(id) });
+    if (!project) {
+        return null;
+    }
+    return {
+        ...project,
+        id: project._id.toString(),
+        ownerId: project.ownerId.toString(),
+        collaborators: project.collaborators.map((c:any) => ({
+            ...c,
+            userId: c.userId.toString()
+        }))
+    } as Project;
 }
 
 export async function getTasksByProjectId(projectId: string) {
@@ -40,18 +62,27 @@ export async function getTasksByProjectId(projectId: string) {
         return [];
     }
     const db = await getDb();
-    return db.collection('tasks').find({ projectId: new ObjectId(projectId) }).toArray();
+    const tasks = await db.collection('tasks').find({ projectId: new ObjectId(projectId) }).toArray();
+    return tasks.map(t => ({
+        ...t,
+        id: t._id.toString(),
+        assigneeId: t.assigneeId?.toString(),
+    }));
 }
 
-export async function getUsers() {
+export async function getUsers(): Promise<User[]> {
     const db = await getDb();
     // Exclude password field from being sent to client
-    return db.collection('users').find({}, { projection: { password: 0 } }).toArray();
+    const users = await db.collection('users').find({}, { projection: { password: 0 } }).toArray();
+    return users.map(u => ({
+        ...u,
+        id: u._id.toString(),
+    })) as User[];
 }
 
 export async function createProject(formData: FormData) {
     const session = await getSession();
-    if (!session) {
+    if (!session?.user?.id) {
       throw new Error("Authentication required");
     }
 
@@ -59,6 +90,10 @@ export async function createProject(formData: FormData) {
     const description = formData.get("description") as string;
     const ownerId = session.user.id;
 
+    if (!name || !description) {
+        throw new Error("Project name and description are required.");
+    }
+    
     if (!ownerId || !ObjectId.isValid(ownerId)) {
         throw new Error("Authentication required: No or invalid owner ID provided.");
     }
@@ -88,7 +123,7 @@ export async function createTask(formData: FormData) {
     const assigneeId = formData.get('assigneeId') as string;
     const dueDate = formData.get('dueDate') as string;
 
-    if (!ObjectId.isValid(projectId) || !ObjectId.isValid(assigneeId)) {
+    if (!ObjectId.isValid(projectId) || (assigneeId && !ObjectId.isValid(assigneeId))) {
         throw new Error("Invalid project or assignee ID");
     }
 
@@ -97,18 +132,29 @@ export async function createTask(formData: FormData) {
         projectId: new ObjectId(projectId),
         title,
         status: 'To Do',
-        assigneeId: new ObjectId(assigneeId),
+        assigneeId: assigneeId ? new ObjectId(assigneeId) : undefined,
         dueDate: new Date(dueDate),
         createdAt: new Date(),
     });
 
     revalidatePath(`/dashboard/projects/${projectId}`);
-    const newTask = await db.collection('tasks').findOne({ _id: result.insertedId });
-    return JSON.parse(JSON.stringify(newTask));
+    const newTaskDoc = await db.collection('tasks').findOne({ _id: result.insertedId });
+
+    if (!newTaskDoc) return null;
+    
+    // Return a plain object, converting ObjectIds to strings
+    const newTask = {
+        ...newTaskDoc,
+        id: newTaskDoc._id.toString(),
+        projectId: newTaskDoc.projectId.toString(),
+        assigneeId: newTaskDoc.assigneeId?.toString()
+    };
+    
+    return newTask;
 }
 
 export async function updateTaskStatus(taskId: string, newStatus: TaskStatus, projectId: string) {
-    if (!ObjectId.isValid(taskId)) {
+    if (!ObjectId.isValid(taskId) || !ObjectId.isValid(projectId)) {
         return null;
     }
     const db = await getDb();
@@ -119,8 +165,17 @@ export async function updateTaskStatus(taskId: string, newStatus: TaskStatus, pr
     
     if (result.modifiedCount > 0) {
         revalidatePath(`/dashboard/projects/${projectId}`);
-        const updatedTask = await db.collection('tasks').findOne({ _id: new ObjectId(taskId) });
-        return JSON.parse(JSON.stringify(updatedTask));
+        const updatedTaskDoc = await db.collection('tasks').findOne({ _id: new ObjectId(taskId) });
+
+        if (!updatedTaskDoc) return null;
+
+        const updatedTask = {
+            ...updatedTaskDoc,
+            id: updatedTaskDoc._id.toString(),
+            projectId: updatedTaskDoc.projectId.toString(),
+            assigneeId: updatedTaskDoc.assigneeId?.toString(),
+        };
+        return updatedTask;
     }
     return null;
 }

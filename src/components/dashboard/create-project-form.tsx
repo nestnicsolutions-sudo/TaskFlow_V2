@@ -54,7 +54,6 @@ export default function CreateProjectForm({ userId }: { userId: string }) {
                 required
               />
             </div>
-            <input type="hidden" name="ownerId" value={userId} />
           </div>
           <DialogFooter>
             <Button type="submit">Create Project</Button>

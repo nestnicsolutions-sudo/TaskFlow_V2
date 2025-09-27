@@ -1,6 +1,6 @@
 import { getProjectById, getTasksByProjectId, getUsers } from "@/app/actions";
 import ProjectView from "@/components/project/project-view";
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 import { getSession } from "@/lib/auth";
 import type { Project, Task, User } from "@/lib/data";
 
@@ -12,50 +12,35 @@ type ProjectPageProps = {
 
 export default async function ProjectPage({ params }: ProjectPageProps) {
     const session = await getSession();
-    // The session check is crucial for security.
     if (!session?.user) {
-        notFound();
+        redirect('/login');
     }
 
-    const projectData = await getProjectById(params.id);
-    if (!projectData) {
+    const project = await getProjectById(params.id);
+    if (!project) {
         notFound();
     }
-    const tasksData = await getTasksByProjectId(params.id);
-    const usersData = await getUsers();
+    const tasks = await getTasksByProjectId(params.id);
+    const users = await getUsers();
 
-    // Convert ObjectIds to strings for client-side consumption
-    const project: Project = {
-        ...projectData,
-        id: projectData._id.toString(),
-        ownerId: projectData.ownerId.toString(),
-        collaborators: projectData.collaborators.map((c: any) => ({ ...c, userId: c.userId.toString() }))
-    };
-
-    const tasks: Task[] = tasksData.map(t => ({
-        ...t,
-        id: t._id.toString(),
-        _id: t._id,
-        projectId: t.projectId,
-        assigneeId: t.assigneeId
-    }));
+    // Ensure the current user is part of the project, otherwise deny access
+    const isCollaborator = project.collaborators.some(c => c.userId === session.user.id);
+    const isOwner = project.ownerId === session.user.id;
+    if (!isOwner && !isCollaborator) {
+        // Or redirect to a generic "access denied" page
+        notFound();
+    }
     
-    const users: User[] = usersData.map(u => ({
-        ...u,
-        id: u._id.toString(),
-        _id: u._id
-    }));
-    
-    // Ensure currentUser object has a string `id` for client-side checks
     const currentUser: User = {
         ...session.user,
         id: session.user.id.toString(),
+        _id: session.user.id, // Keep original ObjectId if needed, though 'id' is primary now
     };
 
     return (
         <ProjectView 
-            initialProject={project}
-            initialTasks={tasks}
+            initialProject={project as Project}
+            initialTasks={tasks as Task[]}
             users={users}
             currentUser={currentUser}
         />

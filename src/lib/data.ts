@@ -9,7 +9,7 @@ export type Task = {
     projectId: ObjectId;
     title: string;
     status: TaskStatus;
-    assigneeId?: ObjectId;
+    assigneeId?: string | ObjectId;
     dueDate: Date;
 };
 
@@ -29,7 +29,7 @@ export type Project = {
 
 export type User = {
     id: string; // Used on client
-    _id?: ObjectId; // From DB
+    _id: ObjectId; // From DB
     name: string;
     email: string;
     password?: string;

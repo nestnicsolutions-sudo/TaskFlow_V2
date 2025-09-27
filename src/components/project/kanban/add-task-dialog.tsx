@@ -42,14 +42,19 @@ export default function AddTaskDialog({ children, project, users, dispatch }: Ad
             return;
         }
 
-        const newTask = await createTask(formData);
-        if (newTask) {
-            dispatch({ type: 'ADD_TASK', payload: { ...newTask, _id: newTask._id.toString() } });
-            toast({ title: 'Success', description: `Task "${newTask.title}" has been created.` });
-            setOpen(false);
-            setDate(undefined);
-        } else {
-            toast({ title: 'Error', description: "Failed to create task.", variant: "destructive" });
+        try {
+            const newTask = await createTask(formData);
+            if (newTask) {
+                dispatch({ type: 'ADD_TASK', payload: newTask });
+                toast({ title: 'Success', description: `Task "${newTask.title}" has been created.` });
+                setOpen(false);
+                setDate(undefined);
+            } else {
+                throw new Error("Failed to create task.");
+            }
+        } catch (error) {
+            const errorMessage = error instanceof Error ? error.message : "An unknown error occurred.";
+            toast({ title: 'Error', description: errorMessage, variant: "destructive" });
         }
     };
     
@@ -71,7 +76,7 @@ export default function AddTaskDialog({ children, project, users, dispatch }: Ad
                         </div>
                          <div className="space-y-2">
                             <Label htmlFor="assigneeId">Assign To</Label>
-                            <Select name="assigneeId" required>
+                            <Select name="assigneeId">
                                 <SelectTrigger>
                                     <SelectValue placeholder="Select an assignee" />
                                 </SelectTrigger>
