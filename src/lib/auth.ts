@@ -123,7 +123,7 @@ export async function logout() {
 }
 
 export async function getSession() {
-  const sessionCookie = cookies().get('session')?.value;
+  const sessionCookie = (await cookies()).get('session')?.value;
   if (!sessionCookie) return null;
   return await decrypt(sessionCookie);
 }
