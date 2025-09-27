@@ -50,9 +50,14 @@ export async function getUsers() {
 }
 
 export async function createProject(formData: FormData) {
+    const session = await getSession();
+    if (!session) {
+      throw new Error("Authentication required");
+    }
+
     const name = formData.get("name") as string;
     const description = formData.get("description") as string;
-    const ownerId = formData.get("ownerId") as string;
+    const ownerId = session.user.id;
 
     if (!ownerId || !ObjectId.isValid(ownerId)) {
         throw new Error("Authentication required: No or invalid owner ID provided.");
