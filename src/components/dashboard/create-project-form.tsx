@@ -14,7 +14,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Plus } from "lucide-react";
 import { createProject } from "@/app/actions";
 
-export default function CreateProjectForm() {
+export default function CreateProjectForm({ userId }: { userId: string }) {
   return (
     <Dialog>
       <DialogTrigger asChild>
@@ -54,6 +54,7 @@ export default function CreateProjectForm() {
                 required
               />
             </div>
+            <input type="hidden" name="ownerId" value={userId} />
           </div>
           <DialogFooter>
             <Button type="submit">Create Project</Button>

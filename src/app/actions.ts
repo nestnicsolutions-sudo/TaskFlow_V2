@@ -44,19 +44,19 @@ export async function getUsers() {
 }
 
 export async function createProject(formData: FormData) {
-    const session = await getSession();
-    if (!session) {
-      throw new Error("Authentication required");
-    }
-
     const name = formData.get("name") as string;
     const description = formData.get("description") as string;
+    const ownerId = formData.get("ownerId") as string;
+
+    if (!ownerId) {
+        throw new Error("Authentication required: No owner ID provided.");
+    }
 
     const { db } = await connectToDatabase();
     const result = await db.collection("projects").insertOne({
       name,
       description,
-      ownerId: new ObjectId(session.user.id),
+      ownerId: new ObjectId(ownerId),
       collaborators: [],
       createdAt: new Date(),
     });

@@ -1,8 +1,15 @@
 import { getProjects, getUsers } from "@/app/actions";
 import ProjectList from "@/components/dashboard/project-list";
 import CreateProjectForm from "@/components/dashboard/create-project-form";
+import { getSession } from "@/lib/auth";
+import { redirect } from "next/navigation";
 
 export default async function DashboardPage() {
+  const session = await getSession();
+  if (!session) {
+    redirect('/login');
+  }
+
   const projectsData = await getProjects();
   const usersData = await getUsers();
 
@@ -10,7 +17,7 @@ export default async function DashboardPage() {
   const projects = projectsData.map((p) => ({
     ...p,
     _id: p._id.toString(),
-    ownerId: p._id.toString(),
+    ownerId: p.ownerId.toString(),
     collaborators: p.collaborators.map((c: any) => ({
       ...c,
       userId: c.userId.toString(),
@@ -33,7 +40,7 @@ export default async function DashboardPage() {
             Your central hub for all ongoing and completed projects.
           </p>
         </div>
-        <CreateProjectForm />
+        <CreateProjectForm userId={session.user.id} />
       </div>
       <ProjectList initialProjects={projects} users={users} />
     </div>
