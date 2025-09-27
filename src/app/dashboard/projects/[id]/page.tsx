@@ -27,6 +27,7 @@ export default async function ProjectPage({ params }: ProjectPageProps) {
     const isCollaborator = projectData.collaborators.some(c => c.userId.toString() === session.user.id);
     if (!isOwner && !isCollaborator) {
         redirect('/dashboard');
+        return; // This is the critical fix
     }
 
     const tasksData = await getTasksByProjectId(params.id);
@@ -34,25 +35,33 @@ export default async function ProjectPage({ params }: ProjectPageProps) {
 
     // Serialize data before passing to client component
     const project: Project = {
-        ...projectData,
-        id: projectData._id.toString(),
+        id: projectData.id.toString(),
+        name: projectData.name,
+        description: projectData.description,
         ownerId: projectData.ownerId.toString(),
         collaborators: projectData.collaborators.map(c => ({
             userId: c.userId.toString(),
             role: c.role,
         })),
+        createdAt: projectData.createdAt,
     };
 
     const tasks: Task[] = tasksData.map(t => ({
-        ...t,
-        id: t._id.toString(),
+        id: t.id.toString(),
         projectId: t.projectId.toString(),
+        title: t.title,
+        status: t.status,
         assigneeId: t.assigneeId?.toString(),
+        dueDate: t.dueDate,
+        createdAt: t.createdAt,
     }));
 
     const users: User[] = usersData.map(u => ({
-        ...u,
-        id: u._id.toString(),
+        id: u.id.toString(),
+        name: u.name,
+        email: u.email,
+        avatarUrl: u.avatarUrl,
+        createdAt: u.createdAt,
     }));
     
     const currentUser = users.find(u => u.id === session.user.id);
