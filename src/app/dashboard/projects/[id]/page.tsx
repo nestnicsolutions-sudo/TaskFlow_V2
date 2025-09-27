@@ -2,6 +2,7 @@ import { getProjectById, getTasksByProjectId, getUsers } from "@/app/actions";
 import ProjectView from "@/components/project/project-view";
 import { notFound } from "next/navigation";
 import { getSession } from "@/lib/auth";
+import type { Project, Task, User } from "@/lib/data";
 
 type ProjectPageProps = {
     params: {
@@ -11,7 +12,8 @@ type ProjectPageProps = {
 
 export default async function ProjectPage({ params }: ProjectPageProps) {
     const session = await getSession();
-    if (!session) {
+    // The session check is crucial for security.
+    if (!session?.user) {
         notFound();
     }
 
@@ -22,27 +24,30 @@ export default async function ProjectPage({ params }: ProjectPageProps) {
     const tasksData = await getTasksByProjectId(params.id);
     const usersData = await getUsers();
 
-    // Convert ObjectIds to strings
-    const project = {
+    // Convert ObjectIds to strings for client-side consumption
+    const project: Project = {
         ...projectData,
-        _id: projectData._id.toString(),
+        id: projectData._id.toString(),
         ownerId: projectData.ownerId.toString(),
         collaborators: projectData.collaborators.map((c: any) => ({ ...c, userId: c.userId.toString() }))
     };
 
-    const tasks = tasksData.map(t => ({
+    const tasks: Task[] = tasksData.map(t => ({
         ...t,
-        _id: t._id.toString(),
-        projectId: t.projectId.toString(),
-        assigneeId: t.assigneeId?.toString()
-    }));
-
-    const users = usersData.map(u => ({
-        ...u,
-        _id: u._id.toString(),
+        id: t._id.toString(),
+        _id: t._id,
+        projectId: t.projectId,
+        assigneeId: t.assigneeId
     }));
     
-    const currentUser = {
+    const users: User[] = usersData.map(u => ({
+        ...u,
+        id: u._id.toString(),
+        _id: u._id
+    }));
+    
+    // Ensure currentUser object has a string `id` for client-side checks
+    const currentUser: User = {
         ...session.user,
         id: session.user.id.toString(),
     };

@@ -18,7 +18,7 @@ const tasksReducer = (state: Task[], action: Action): Task[] => {
                     : task
             );
         case 'ADD_TASK':
-             if (state.find(t => t.id === action.payload.id)) return state;
+             if (state.some(t => t.id === action.payload.id)) return state;
             return [...state, action.payload];
         default:
             return state;
@@ -26,29 +26,25 @@ const tasksReducer = (state: Task[], action: Action): Task[] => {
 };
 
 type ProjectViewProps = {
-    initialProject: any;
-    initialTasks: any[];
-    users: any[];
-    currentUser: any;
+    initialProject: Project;
+    initialTasks: Task[];
+    users: User[];
+    currentUser: User;
 };
 
 export default function ProjectView({ initialProject, initialTasks, users, currentUser }: ProjectViewProps) {
     
-    const transformedTasks = initialTasks.map(t => ({...t, id: t._id}));
-    const [tasks, dispatch] = useReducer(tasksReducer, transformedTasks);
+    const [tasks, dispatch] = useReducer(tasksReducer, initialTasks);
     
     const userRole = useMemo(() => {
         if (initialProject.ownerId === currentUser.id) return 'admin';
         return initialProject.collaborators.find((c:any) => c.userId === currentUser.id)?.role || 'viewer';
     }, [initialProject, currentUser]);
 
-    const projectWithId = {...initialProject, id: initialProject._id};
-    const usersWithId = users.map(u => ({...u, id: u._id}));
-    
     return (
         <div className="flex flex-col h-full">
-            <ProjectHeader project={projectWithId} users={usersWithId} currentUser={currentUser} tasks={tasks} dispatch={dispatch} userRole={userRole} />
-            <KanbanBoard tasks={tasks} dispatch={dispatch} users={usersWithId} userRole={userRole} project={projectWithId} />
+            <ProjectHeader project={initialProject} users={users} currentUser={currentUser} tasks={tasks} dispatch={dispatch} userRole={userRole} />
+            <KanbanBoard tasks={tasks} dispatch={dispatch} users={users} userRole={userRole} project={initialProject} />
         </div>
     );
 }
