@@ -59,7 +59,6 @@ export async function createProject(formData: FormData) {
         createdAt: new Date(),
     });
     
-    revalidatePath('/dashboard');
     const newProject = await db.collection('projects').findOne({ _id: result.insertedId });
     return JSON.parse(JSON.stringify(newProject));
 }
