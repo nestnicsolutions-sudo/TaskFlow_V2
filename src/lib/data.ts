@@ -4,34 +4,37 @@ export type TaskStatus = 'To Do' | 'In Progress' | 'Pending' | 'Completed';
 export type Role = 'admin' | 'editor' | 'viewer';
 
 export type Task = {
-    id: string; // Used on client
-    _id: string; // From DB
-    projectId: string;
+    id: string;
+    _id: ObjectId;
+    projectId: string | ObjectId;
     title: string;
     status: TaskStatus;
-    assigneeId?: string;
+    assigneeId?: string | ObjectId;
     dueDate: Date;
+    createdAt: Date;
 };
 
 export type Collaborator = {
-    userId: string;
+    userId: string | ObjectId;
     role: Role;
 };
 
 export type Project = {
-    id: string; // Used on client
-    _id: string; // From DB
+    id: string;
+    _id: ObjectId;
     name: string;
     description: string;
-    ownerId: string;
+    ownerId: string | ObjectId;
     collaborators: Collaborator[];
+    createdAt: Date;
 };
 
 export type User = {
-    id: string; // Used on client
-    _id: string; // From DB
+    id: string;
+    _id: ObjectId;
     name: string;
     email: string;
     password?: string;
     avatarUrl?: string;
+    createdAt: Date;
 };
