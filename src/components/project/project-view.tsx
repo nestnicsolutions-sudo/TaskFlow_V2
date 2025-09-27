@@ -3,9 +3,7 @@
 import type { Project, Task, TaskStatus, User } from "@/lib/data";
 import { useReducer, useMemo } from "react";
 import ProjectHeader from "./project-header";
-import ProgressOverview from "./progress-overview";
 import KanbanBoard from "./kanban";
-import DeadlineNotifications from "./deadline-notifications";
 
 type Action =
     | { type: 'UPDATE_TASK_STATUS'; payload: { taskId: string; newStatus: TaskStatus } }
@@ -50,13 +48,7 @@ export default function ProjectView({ initialProject, initialTasks, users, curre
     return (
         <div className="flex flex-col h-full">
             <ProjectHeader project={projectWithId} users={usersWithId} currentUser={currentUser} tasks={tasks} dispatch={dispatch} userRole={userRole} />
-            <div className="grid gap-6 mt-6 md:grid-cols-3">
-                <div className="md:col-span-3">
-                     <ProgressOverview tasks={tasks} />
-                </div>
-            </div>
             <KanbanBoard tasks={tasks} dispatch={dispatch} users={usersWithId} userRole={userRole} project={projectWithId} />
-            <DeadlineNotifications tasks={tasks} />
         </div>
     );
 }

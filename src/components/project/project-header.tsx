@@ -2,10 +2,9 @@ import type { Project, Task, User, Role } from "@/lib/data";
 import type { Dispatch } from "react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
-import { Plus, UserPlus, Sparkles } from "lucide-react";
+import { Plus, UserPlus } from "lucide-react";
 import InviteCollaboratorDialog from "./invite-collaborator-dialog";
 import AddTaskDialog from "./kanban/add-task-dialog";
-import AITaskSuggester from "./ai-task-suggester";
 
 type ProjectHeaderProps = {
     project: Project;
@@ -29,10 +28,7 @@ export default function ProjectHeader({ project, users, currentUser, tasks, disp
                 </div>
                 <div className="flex items-center gap-2 flex-shrink-0">
                     {canManage && (
-                        <>
-                            <AITaskSuggester project={project} tasks={tasks} dispatch={dispatch} />
-                            <AddTaskDialog project={project} users={users} dispatch={dispatch}><Button><Plus className="mr-2 h-4 w-4" />Add Task</Button></AddTaskDialog>
-                        </>
+                        <AddTaskDialog project={project} users={users} dispatch={dispatch}><Button><Plus className="mr-2 h-4 w-4" />Add Task</Button></AddTaskDialog>
                     )}
                     <InviteCollaboratorDialog project={project} users={users} disabled={userRole !== 'admin'}><Button variant="outline"><UserPlus className="mr-2 h-4 w-4"/>Invite</Button></InviteCollaboratorDialog>
                 </div>
