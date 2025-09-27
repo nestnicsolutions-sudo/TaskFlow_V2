@@ -7,9 +7,11 @@ import {
   DialogTitle,
   DialogDescription,
   DialogFooter,
+  DialogTrigger,
 } from '@/components/ui/dialog';
 import { Sparkles, Plus } from 'lucide-react';
-import { suggestTasks, createTask } from '@/app/actions';
+import { suggestSubtasks } from '@/ai/ai-suggest-subtasks';
+import { createTask } from '@/app/actions';
 import type { Project, Task } from '@/lib/data';
 import { Skeleton } from '../ui/skeleton';
 import { useToast } from '@/hooks/use-toast';
@@ -29,11 +31,15 @@ export default function AITaskSuggester({ project, tasks, dispatch }: AITaskSugg
   const handleFetchSuggestions = async () => {
     setLoading(true);
     setSuggestions([]);
-    const result = await suggestTasks(project.description, tasks);
-    if (result.success && result.suggestions) {
-      setSuggestions(result.suggestions);
-    } else {
-      toast({ title: 'Error', description: result.message || 'Could not fetch suggestions.', variant: 'destructive' });
+    try {
+        const existingTasks = tasks.map(t => t.title);
+        const result = await suggestSubtasks({ projectDescription: project.description, existingTasks });
+        if (result.subtasks) {
+          setSuggestions(result.subtasks);
+        }
+    } catch (error) {
+        console.error(error);
+        toast({ title: 'Error', description: 'Could not fetch suggestions.', variant: 'destructive' });
     }
     setLoading(false);
   };
@@ -42,8 +48,7 @@ export default function AITaskSuggester({ project, tasks, dispatch }: AITaskSugg
     const formData = new FormData();
     formData.append('projectId', project.id);
     formData.append('title', title);
-    // Mocking other required fields
-    formData.append('assigneeId', project.ownerId); 
+    formData.append('assigneeId', project.ownerId as string); 
     const tomorrow = new Date();
     tomorrow.setDate(tomorrow.getDate() + 1);
     formData.append('dueDate', tomorrow.toISOString());

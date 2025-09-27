@@ -1,7 +1,7 @@
 "use server"
 
 import { revalidatePath } from "next/cache";
-import { suggestTasks as suggestTasksFlow } from "@/ai/flows/suggest-tasks";
+import { suggestSubtasks as suggestSubtasksFlow } from "@/ai/ai-suggest-subtasks";
 import { Project, Task, TaskStatus, User } from "@/lib/data";
 import { connectToDatabase } from "@/lib/mongodb";
 import { ObjectId } from "mongodb";
@@ -37,7 +37,7 @@ export async function getProjects() {
     }));
 }
 
-export async function getProjectById(id: string): Promise<Project | null> {
+export async function getProjectById(id: string) {
     if (!ObjectId.isValid(id)) {
         return null;
     }
@@ -82,14 +82,14 @@ export async function getUsers(): Promise<User[]> {
 
 export async function createProject(formData: FormData) {
     const session = await getSession();
-    if (!session?.user?.id) {
+    const ownerId = formData.get("userId") as string;
+    if (!session?.user?.id || !ownerId) {
       throw new Error("Authentication required");
     }
 
     const name = formData.get("name") as string;
     const description = formData.get("description") as string;
-    const ownerId = session.user.id;
-
+    
     if (!name || !description) {
         throw new Error("Project name and description are required.");
     }
@@ -201,8 +201,8 @@ export async function inviteCollaborator(projectId: string, userId: string, role
 export async function suggestTasks(projectDescription: string, existingTasks: Task[]) {
     try {
         const taskTitles = existingTasks.map(t => t.title);
-        const suggestions = await suggestTasksFlow({ projectDescription, existingTasks: taskTitles });
-        return { success: true, suggestions };
+        const result = await suggestSubtasksFlow({ projectDescription, existingTasks: taskTitles });
+        return { success: true, suggestions: result.subtasks };
     } catch (error) {
         console.error("Error calling AI flow:", error);
         return { success: false, message: "Failed to get AI suggestions." };
