@@ -46,7 +46,7 @@ export async function getUsers() {
 export async function createProject(formData: FormData) {
     const session = await getSession();
     if (!session) {
-        throw new Error("Authentication required");
+      throw new Error("Authentication required");
     }
 
     const name = formData.get("name") as string;
