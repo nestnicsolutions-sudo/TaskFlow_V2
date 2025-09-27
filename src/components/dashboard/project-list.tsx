@@ -1,6 +1,6 @@
 "use client";
 
-import type { Project, User } from "@/lib/data";
+import type { User } from "@/lib/data";
 import { useState } from "react";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -12,11 +12,13 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { useRouter } from "next/navigation";
 
-export default function ProjectList({ initialProjects, users }: { initialProjects: Project[], users: User[] }) {
+export default function ProjectList({ initialProjects, users }: { initialProjects: any[], users: User[] }) {
     const [open, setOpen] = useState(false);
+    const router = useRouter();
 
-    const getUserById = (id: string) => users.find(u => u.id === id);
+    const getUserById = (id: string) => users.find(u => u._id === id);
 
     return (
         <div className="space-y-8">
@@ -36,8 +38,9 @@ export default function ProjectList({ initialProjects, users }: { initialProject
                     </DialogTrigger>
                     <DialogContent className="sm:max-w-[425px]">
                         <form action={async (formData) => {
-                            await createProject(formData);
+                            const newProject = await createProject(formData);
                             setOpen(false);
+                            router.push(`/dashboard/projects/${newProject._id}`);
                         }}>
                             <DialogHeader>
                                 <DialogTitle>Create New Project</DialogTitle>
@@ -66,7 +69,7 @@ export default function ProjectList({ initialProjects, users }: { initialProject
             {initialProjects.length > 0 ? (
                 <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
                     {initialProjects.map((project) => (
-                        <Card key={project.id} className="flex flex-col">
+                        <Card key={project._id} className="flex flex-col">
                             <CardHeader>
                                 <CardTitle className="font-headline flex items-center gap-2">
                                   <FolderKanban className="h-5 w-5 text-primary"/> 
@@ -80,10 +83,10 @@ export default function ProjectList({ initialProjects, users }: { initialProject
                                     <span>{project.collaborators.length + 1} Members</span>
                                 </div>
                                 <div className="flex -space-x-2 overflow-hidden mt-4">
-                                    { [project.ownerId, ...project.collaborators.map(c => c.userId)].slice(0, 5).map(userId => {
+                                    { [project.ownerId, ...project.collaborators.map((c: any) => c.userId)].slice(0, 5).map((userId: string) => {
                                         const user = getUserById(userId);
                                         return user ? (
-                                            <Avatar key={user.id} className="inline-block h-8 w-8 rounded-full ring-2 ring-background">
+                                            <Avatar key={user._id} className="inline-block h-8 w-8 rounded-full ring-2 ring-background">
                                                 <AvatarImage src={user.avatarUrl} />
                                                 <AvatarFallback>{user.name.charAt(0)}</AvatarFallback>
                                             </Avatar>
@@ -93,7 +96,7 @@ export default function ProjectList({ initialProjects, users }: { initialProject
                             </CardContent>
                             <CardFooter>
                                 <Button asChild className="w-full" variant="outline">
-                                    <Link href={`/dashboard/projects/${project.id}`}>View Project</Link>
+                                    <Link href={`/dashboard/projects/${project._id}`}>View Project</Link>
                                 </Button>
                             </CardFooter>
                         </Card>

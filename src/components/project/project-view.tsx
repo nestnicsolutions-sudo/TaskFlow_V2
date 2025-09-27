@@ -20,6 +20,7 @@ const tasksReducer = (state: Task[], action: Action): Task[] => {
                     : task
             );
         case 'ADD_TASK':
+             if (state.find(t => t.id === action.payload.id)) return state;
             return [...state, action.payload];
         default:
             return state;
@@ -27,29 +28,34 @@ const tasksReducer = (state: Task[], action: Action): Task[] => {
 };
 
 type ProjectViewProps = {
-    initialProject: Project;
-    initialTasks: Task[];
-    users: User[];
-    currentUser: User;
+    initialProject: any;
+    initialTasks: any[];
+    users: any[];
+    currentUser: any;
 };
 
 export default function ProjectView({ initialProject, initialTasks, users, currentUser }: ProjectViewProps) {
-    const [tasks, dispatch] = useReducer(tasksReducer, initialTasks);
-
+    
+    const transformedTasks = initialTasks.map(t => ({...t, id: t._id}));
+    const [tasks, dispatch] = useReducer(tasksReducer, transformedTasks);
+    
     const userRole = useMemo(() => {
         if (initialProject.ownerId === currentUser.id) return 'admin';
-        return initialProject.collaborators.find(c => c.userId === currentUser.id)?.role || 'viewer';
+        return initialProject.collaborators.find((c:any) => c.userId === currentUser.id)?.role || 'viewer';
     }, [initialProject, currentUser]);
 
+    const projectWithId = {...initialProject, id: initialProject._id};
+    const usersWithId = users.map(u => ({...u, id: u._id}));
+    
     return (
         <div className="flex flex-col h-full">
-            <ProjectHeader project={initialProject} users={users} currentUser={currentUser} tasks={tasks} dispatch={dispatch} userRole={userRole} />
+            <ProjectHeader project={projectWithId} users={usersWithId} currentUser={currentUser} tasks={tasks} dispatch={dispatch} userRole={userRole} />
             <div className="grid gap-6 mt-6 md:grid-cols-3">
                 <div className="md:col-span-3">
                      <ProgressOverview tasks={tasks} />
                 </div>
             </div>
-            <KanbanBoard tasks={tasks} dispatch={dispatch} users={users} userRole={userRole} project={initialProject} />
+            <KanbanBoard tasks={tasks} dispatch={dispatch} users={usersWithId} userRole={userRole} project={projectWithId} />
             <DeadlineNotifications tasks={tasks} />
         </div>
     );

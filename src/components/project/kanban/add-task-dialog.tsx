@@ -44,7 +44,7 @@ export default function AddTaskDialog({ children, project, users, dispatch }: Ad
 
         const newTask = await createTask(formData);
         if (newTask) {
-            dispatch({ type: 'ADD_TASK', payload: newTask });
+            dispatch({ type: 'ADD_TASK', payload: { ...newTask, _id: newTask._id.toString() } });
             toast({ title: 'Success', description: `Task "${newTask.title}" has been created.` });
             setOpen(false);
             setDate(undefined);

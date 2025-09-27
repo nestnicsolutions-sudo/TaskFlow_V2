@@ -1,6 +1,7 @@
 import { getProjectById, getTasksByProjectId, getUsers } from "@/app/actions";
 import ProjectView from "@/components/project/project-view";
 import { notFound } from "next/navigation";
+import { getSession } from "@/lib/auth";
 
 type ProjectPageProps = {
     params: {
@@ -9,15 +10,42 @@ type ProjectPageProps = {
 };
 
 export default async function ProjectPage({ params }: ProjectPageProps) {
-    const project = await getProjectById(params.id);
-    if (!project) {
+    const session = await getSession();
+    if (!session) {
         notFound();
     }
-    const tasks = await getTasksByProjectId(params.id);
-    const users = await getUsers();
 
-    // In a real app, you would get the current logged-in user
-    const currentUser = users[0]; 
+    const projectData = await getProjectById(params.id);
+    if (!projectData) {
+        notFound();
+    }
+    const tasksData = await getTasksByProjectId(params.id);
+    const usersData = await getUsers();
+
+    // Convert ObjectIds to strings
+    const project = {
+        ...projectData,
+        _id: projectData._id.toString(),
+        ownerId: projectData.ownerId.toString(),
+        collaborators: projectData.collaborators.map((c: any) => ({ ...c, userId: c.userId.toString() }))
+    };
+
+    const tasks = tasksData.map(t => ({
+        ...t,
+        _id: t._id.toString(),
+        projectId: t.projectId.toString(),
+        assigneeId: t.assigneeId?.toString()
+    }));
+
+    const users = usersData.map(u => ({
+        ...u,
+        _id: u._id.toString(),
+    }));
+    
+    const currentUser = {
+        ...session.user,
+        id: session.user.id.toString(),
+    };
 
     return (
         <ProjectView 

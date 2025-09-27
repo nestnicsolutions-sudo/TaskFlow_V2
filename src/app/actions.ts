@@ -3,58 +3,65 @@
 import { revalidatePath } from "next/cache";
 import { suggestTasks as suggestTasksFlow } from "@/ai/flows/suggest-tasks";
 import { Project, Task, TaskStatus, User } from "@/lib/data";
+import { connectToDatabase } from "@/lib/mongodb";
+import { ObjectId } from "mongodb";
+import { getSession } from "@/lib/auth";
 
-// This is a mock database. In a real app, you would use a proper database.
-let projects: Project[] = [
-    { id: 'prj-001', name: 'Website Redesign', description: 'Complete overhaul of the company website.', ownerId: 'user-1', collaborators: [{ userId: 'user-2', role: 'editor' }] },
-    { id: 'prj-002', name: 'Q3 Marketing Campaign', description: 'Launch the new marketing campaign for the third quarter.', ownerId: 'user-1', collaborators: [] },
-    { id: 'prj-003', name: 'Mobile App Development', description: 'Develop a new mobile app for iOS and Android.', ownerId: 'user-2', collaborators: [{ userId: 'user-1', role: 'viewer' }] },
-];
-
-let tasks: Task[] = [
-    { id: 'task-001', projectId: 'prj-001', title: 'Design new homepage mockups', status: 'In Progress', assigneeId: 'user-2', dueDate: new Date(Date.now() + 3 * 24 * 60 * 60 * 1000) },
-    { id: 'task-002', projectId: 'prj-001', title: 'Develop front-end components', status: 'To Do', assigneeId: 'user-2', dueDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000) },
-    { id: 'task-003', projectId: 'prj-001', title: 'Setup staging server', status: 'Pending', assigneeId: 'user-1', dueDate: new Date(Date.now() + 1 * 24 * 60 * 60 * 1000) },
-    { id: 'task-004', projectId: 'prj-001', title: 'Review and approve designs', status: 'Completed', assigneeId: 'user-1', dueDate: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000) },
-    { id: 'task-005', projectId: 'prj-002', title: 'Finalize campaign budget', status: 'Completed', assigneeId: 'user-1', dueDate: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000) },
-    { id: 'task-006', projectId: 'prj-002', title: 'Create social media assets', status: 'In Progress', assigneeId: 'user-1', dueDate: new Date(Date.now() + 2 * 24 * 60 * 60 * 1000) },
-];
-
-let users: User[] = [
-    { id: 'user-1', name: 'Alex Johnson', email: 'alex@example.com', avatarUrl: 'https://picsum.photos/seed/101/100/100' },
-    { id: 'user-2', name: 'Maria Garcia', email: 'maria@example.com', avatarUrl: 'https://picsum.photos/seed/102/100/100' },
-    { id: 'user-3', name: 'David Smith', email: 'david@example.com', avatarUrl: 'https://picsum.photos/seed/103/100/100' },
-];
+async function getDb() {
+    const { db } = await connectToDatabase();
+    return db;
+}
 
 export async function getProjects() {
-    return projects;
+    const session = await getSession();
+    if (!session) {
+        return [];
+    }
+    const db = await getDb();
+    return db.collection('projects').find({
+        $or: [
+            { ownerId: new ObjectId(session.user.id) },
+            { 'collaborators.userId': new ObjectId(session.user.id) }
+        ]
+    }).toArray();
 }
 
 export async function getProjectById(id: string) {
-    return projects.find(p => p.id === id) || null;
+    const db = await getDb();
+    return db.collection('projects').findOne({ _id: new ObjectId(id) });
 }
 
 export async function getTasksByProjectId(projectId: string) {
-    return tasks.filter(t => t.projectId === projectId);
+    const db = await getDb();
+    return db.collection('tasks').find({ projectId: new ObjectId(projectId) }).toArray();
 }
 
 export async function getUsers() {
-    return users;
+    const db = await getDb();
+    // Exclude password field from being sent to client
+    return db.collection('users').find({}, { projection: { password: 0 } }).toArray();
 }
 
 export async function createProject(formData: FormData) {
+    const session = await getSession();
+    if (!session) {
+        throw new Error("Authentication required");
+    }
     const name = formData.get('name') as string;
     const description = formData.get('description') as string;
-    const newProject: Project = {
-        id: `prj-${Math.random().toString(36).substr(2, 9)}`,
+    
+    const db = await getDb();
+    const result = await db.collection('projects').insertOne({
         name,
         description,
-        ownerId: 'user-1', // Mock current user
+        ownerId: new ObjectId(session.user.id),
         collaborators: [],
-    };
-    projects.push(newProject);
+        createdAt: new Date(),
+    });
+    
     revalidatePath('/dashboard');
-    return newProject;
+    const newProject = await db.collection('projects').findOne({ _id: result.insertedId });
+    return JSON.parse(JSON.stringify(newProject));
 }
 
 export async function createTask(formData: FormData) {
@@ -63,38 +70,47 @@ export async function createTask(formData: FormData) {
     const assigneeId = formData.get('assigneeId') as string;
     const dueDate = formData.get('dueDate') as string;
 
-    const newTask: Task = {
-        id: `task-${Math.random().toString(36).substr(2, 9)}`,
-        projectId,
+    const db = await getDb();
+    const result = await db.collection('tasks').insertOne({
+        projectId: new ObjectId(projectId),
         title,
         status: 'To Do',
-        assigneeId,
+        assigneeId: new ObjectId(assigneeId),
         dueDate: new Date(dueDate),
-    };
-    tasks.push(newTask);
+        createdAt: new Date(),
+    });
+
     revalidatePath(`/dashboard/projects/${projectId}`);
-    return newTask;
+    const newTask = await db.collection('tasks').findOne({ _id: result.insertedId });
+    return JSON.parse(JSON.stringify(newTask));
 }
 
 export async function updateTaskStatus(taskId: string, newStatus: TaskStatus, projectId: string) {
-    const taskIndex = tasks.findIndex(t => t.id === taskId);
-    if (taskIndex !== -1) {
-        tasks[taskIndex].status = newStatus;
+    const db = await getDb();
+    const result = await db.collection('tasks').updateOne(
+        { _id: new ObjectId(taskId) },
+        { $set: { status: newStatus } }
+    );
+    
+    if (result.modifiedCount > 0) {
         revalidatePath(`/dashboard/projects/${projectId}`);
-        return tasks[taskIndex];
+        const updatedTask = await db.collection('tasks').findOne({ _id: new ObjectId(taskId) });
+        return JSON.parse(JSON.stringify(updatedTask));
     }
     return null;
 }
 
 export async function inviteCollaborator(projectId: string, userId: string, role: 'editor' | 'viewer') {
-    const projectIndex = projects.findIndex(p => p.id === projectId);
-    if (projectIndex !== -1) {
-        const project = projects[projectIndex];
-        if (!project.collaborators.some(c => c.userId === userId)) {
-            project.collaborators.push({ userId, role });
-            revalidatePath(`/dashboard/projects/${projectId}`);
-            return { success: true };
-        }
+    const db = await getDb();
+    const project = await db.collection('projects').findOne({ _id: new ObjectId(projectId) });
+
+    if (project && !project.collaborators.some((c: any) => c.userId.toString() === userId)) {
+        await db.collection('projects').updateOne(
+            { _id: new ObjectId(projectId) },
+            { $push: { collaborators: { userId: new ObjectId(userId), role } } }
+        );
+        revalidatePath(`/dashboard/projects/${projectId}`);
+        return { success: true };
     }
     return { success: false, message: "User is already a collaborator." };
 }
