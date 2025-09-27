@@ -5,24 +5,17 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-  DialogTrigger,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { Plus } from "lucide-react";
 import { createProject } from "@/app/actions";
 
-export default function CreateProjectForm({ userId }: { userId: string }) {
+export default function CreateProjectForm({ userId, children, open, onOpenChange }: { userId: string, children: React.ReactNode, open: boolean, onOpenChange: (open: boolean) => void }) {
   return (
-    <Dialog>
-      <DialogTrigger asChild>
-        <Button>
-          <Plus className="-ml-1 mr-2 h-4 w-4" />
-          New Project
-        </Button>
-      </DialogTrigger>
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      {children}
       <DialogContent className="sm:max-w-[425px]">
         <form action={createProject}>
           <DialogHeader>

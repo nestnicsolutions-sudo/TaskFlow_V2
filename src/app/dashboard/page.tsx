@@ -1,6 +1,5 @@
 import { getProjects, getUsers } from "@/app/actions";
 import ProjectList from "@/components/dashboard/project-list";
-import CreateProjectForm from "@/components/dashboard/create-project-form";
 import { getSession } from "@/lib/auth";
 import { redirect } from "next/navigation";
 import type { Project, User } from "@/lib/data";
@@ -14,25 +13,19 @@ export default async function DashboardPage() {
   const projectsData = await getProjects();
   const usersData = await getUsers();
 
-  // Convert data to plain objects for client-side consumption
-  const projects: Project[] = projectsData.map((p) => ({
-    id: p.id.toString(),
-    name: p.name,
-    description: p.description,
+  const projects: Project[] = projectsData.map((p: any) => ({
+    ...p,
+    id: p._id.toString(),
     ownerId: p.ownerId.toString(),
     collaborators: p.collaborators.map((c: any) => ({
+      ...c,
       userId: c.userId.toString(),
-      role: c.role,
     })),
-    createdAt: p.createdAt,
   }));
 
-  const users: User[] = usersData.map((u) => ({
-    id: u.id.toString(),
-    name: u.name,
-    email: u.email,
-    avatarUrl: u.avatarUrl,
-    createdAt: u.createdAt,
+  const users: User[] = usersData.map((u: any) => ({
+    ...u,
+    id: u._id.toString(),
   }));
 
   return (
@@ -46,7 +39,6 @@ export default async function DashboardPage() {
             Your central hub for all ongoing and completed projects.
           </p>
         </div>
-        <CreateProjectForm userId={session.user.id} />
       </div>
       <ProjectList initialProjects={projects} users={users} />
     </div>
