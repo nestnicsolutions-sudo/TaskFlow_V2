@@ -16,7 +16,7 @@ export default async function DashboardPage() {
   // Convert ObjectId to string for client-side consumption
   const projects = projectsData.map((p) => ({
     ...p,
-    _id: p._id.toString(),
+    id: p.id.toString(),
     ownerId: p.ownerId.toString(),
     collaborators: p.collaborators.map((c: any) => ({
       ...c,
@@ -26,7 +26,7 @@ export default async function DashboardPage() {
 
   const users = usersData.map((u) => ({
     ...u,
-    _id: u._id.toString(),
+    id: u.id.toString(),
   }));
 
   return (

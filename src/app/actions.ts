@@ -48,7 +48,6 @@ export async function getProjectById(id: string): Promise<Project | null> {
     }
     
     const project: Project = {
-        _id: projectDoc._id,
         id: projectDoc._id.toString(),
         name: projectDoc.name,
         description: projectDoc.description,
