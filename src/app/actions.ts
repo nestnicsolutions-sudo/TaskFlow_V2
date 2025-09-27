@@ -42,19 +42,25 @@ export async function getProjectById(id: string): Promise<Project | null> {
         return null;
     }
     const db = await getDb();
-    const project = await db.collection('projects').findOne({ _id: new ObjectId(id) });
-    if (!project) {
+    const projectDoc = await db.collection('projects').findOne({ _id: new ObjectId(id) });
+    if (!projectDoc) {
         return null;
     }
-    return {
-        ...project,
-        id: project._id.toString(),
-        ownerId: project.ownerId.toString(),
-        collaborators: project.collaborators.map((c:any) => ({
-            ...c,
-            userId: c.userId.toString()
-        }))
-    } as Project;
+    
+    const project: Project = {
+        _id: projectDoc._id,
+        id: projectDoc._id.toString(),
+        name: projectDoc.name,
+        description: projectDoc.description,
+        ownerId: projectDoc.ownerId.toString(),
+        collaborators: projectDoc.collaborators.map((c: any) => ({
+            userId: c.userId.toString(),
+            role: c.role,
+        })),
+        createdAt: projectDoc.createdAt,
+    };
+
+    return project;
 }
 
 export async function getTasksByProjectId(projectId: string): Promise<Task[]> {
@@ -66,6 +72,7 @@ export async function getTasksByProjectId(projectId: string): Promise<Task[]> {
     return tasks.map(t => ({
         ...t,
         id: t._id.toString(),
+        _id: t._id,
         projectId: t.projectId.toString(),
         assigneeId: t.assigneeId?.toString(),
     })) as Task[];
@@ -78,16 +85,12 @@ export async function getUsers(): Promise<User[]> {
     return users.map(u => ({
         ...u,
         id: u._id.toString(),
+        _id: u._id,
     })) as User[];
 }
 
 export async function createProject(formData: FormData) {
-    const session = await getSession();
     const ownerId = formData.get("userId") as string;
-    if (!session?.user?.id || !ownerId || session.user.id !== ownerId) {
-      throw new Error("Authentication required");
-    }
-
     const name = formData.get("name") as string;
     const description = formData.get("description") as string;
     
