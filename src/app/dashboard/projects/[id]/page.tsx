@@ -16,56 +16,30 @@ export default async function ProjectPage({ params }: ProjectPageProps) {
         redirect('/login');
     }
 
-    const projectData = await getProjectById(params.id);
+    const project = await getProjectById(params.id);
     
-    if (!projectData) {
+    if (!project) {
         notFound();
     }
     
     // Authorization check
-    const isOwner = projectData.ownerId === session.user.id;
-    const isCollaborator = projectData.collaborators.some(c => c.userId === session.user.id);
+    const isOwner = project.ownerId === session.user.id;
+    const isCollaborator = project.collaborators.some(c => c.userId === session.user.id);
     if (!isOwner && !isCollaborator) {
-        notFound();
+        // Instead of notFound, redirect or show an unauthorized message
+        // For simplicity, we'll redirect to dashboard, but an "access denied" page would be better.
+        redirect('/dashboard');
     }
 
-    const tasksData = await getTasksByProjectId(params.id);
-    const usersData = await getUsers();
-
-    // Convert all data to plain objects for client components
-    const project: Project = {
-        ...projectData,
-        id: projectData.id.toString(),
-        _id: projectData._id.toString(),
-        ownerId: projectData.ownerId.toString(),
-        collaborators: projectData.collaborators.map((c: any) => ({
-            userId: c.userId.toString(),
-            role: c.role,
-        })),
-    };
-
-    const tasks: Task[] = tasksData.map(t => ({
-        ...t,
-        id: t.id.toString(),
-        _id: t._id.toString(),
-        projectId: t.projectId.toString(),
-        assigneeId: t.assigneeId?.toString(),
-        dueDate: t.dueDate,
-    }));
-
-    const users: User[] = usersData.map(u => ({
-        id: u.id.toString(),
-        _id: u._id.toString(),
-        name: u.name,
-        email: u.email,
-        avatarUrl: u.avatarUrl
-    }));
+    const tasks = await getTasksByProjectId(params.id);
+    const users = await getUsers();
     
-    const currentUser: User = {
-        ...session.user,
-        id: session.user.id.toString(),
-        _id: session.user.id.toString(),
-    };
+    const currentUser = users.find(u => u.id === session.user.id);
+
+    if (!currentUser) {
+        // This should not happen if the user has a session
+        redirect('/login');
+    }
 
     return (
         <ProjectView 

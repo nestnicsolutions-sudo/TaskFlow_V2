@@ -10,8 +10,7 @@ import {
   DialogTrigger,
 } from '@/components/ui/dialog';
 import { Sparkles, Plus } from 'lucide-react';
-import { suggestSubtasks } from '@/ai/ai-suggest-subtasks';
-import { createTask } from '@/app/actions';
+import { suggestTasks, createTask } from '@/app/actions';
 import type { Project, Task } from '@/lib/data';
 import { Skeleton } from '../ui/skeleton';
 import { useToast } from '@/hooks/use-toast';
@@ -32,10 +31,11 @@ export default function AITaskSuggester({ project, tasks, dispatch }: AITaskSugg
     setLoading(true);
     setSuggestions([]);
     try {
-        const existingTasks = tasks.map(t => t.title);
-        const result = await suggestSubtasks({ projectDescription: project.description, existingTasks });
-        if (result.subtasks) {
-          setSuggestions(result.subtasks);
+        const result = await suggestTasks(project.description, tasks);
+        if (result.success && result.suggestions) {
+          setSuggestions(result.suggestions);
+        } else {
+            toast({ title: 'AI Suggestion', description: result.message || 'No new suggestions at the moment.' });
         }
     } catch (error) {
         console.error(error);
@@ -48,6 +48,7 @@ export default function AITaskSuggester({ project, tasks, dispatch }: AITaskSugg
     const formData = new FormData();
     formData.append('projectId', project.id);
     formData.append('title', title);
+    // By default, assign to the project owner
     formData.append('assigneeId', project.ownerId as string); 
     const tomorrow = new Date();
     tomorrow.setDate(tomorrow.getDate() + 1);
@@ -58,7 +59,7 @@ export default function AITaskSuggester({ project, tasks, dispatch }: AITaskSugg
       dispatch({ type: 'ADD_TASK', payload: newTask });
       toast({ title: 'Success', description: `Task "${title}" added.` });
       // Remove suggestion from list
-      setSuggestions(suggestions.filter(s => s !== title));
+      setSuggestions(currentSuggestions => currentSuggestions.filter(s => s !== title));
     }
   };
 

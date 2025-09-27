@@ -13,7 +13,7 @@ async function getDb() {
     return db;
 }
 
-export async function getProjects() {
+export async function getProjects(): Promise<Project[]> {
     const session = await getSession();
     if (!session) {
         return [];
@@ -34,10 +34,10 @@ export async function getProjects() {
             ...c,
             userId: c.userId.toString(),
         })),
-    }));
+    })) as Project[];
 }
 
-export async function getProjectById(id: string) {
+export async function getProjectById(id: string): Promise<Project | null> {
     if (!ObjectId.isValid(id)) {
         return null;
     }
@@ -49,7 +49,6 @@ export async function getProjectById(id: string) {
     return {
         ...project,
         id: project._id.toString(),
-        _id: project._id.toString(),
         ownerId: project.ownerId.toString(),
         collaborators: project.collaborators.map((c:any) => ({
             ...c,
@@ -58,7 +57,7 @@ export async function getProjectById(id: string) {
     } as Project;
 }
 
-export async function getTasksByProjectId(projectId: string) {
+export async function getTasksByProjectId(projectId: string): Promise<Task[]> {
     if (!ObjectId.isValid(projectId)) {
         return [];
     }
@@ -67,10 +66,9 @@ export async function getTasksByProjectId(projectId: string) {
     return tasks.map(t => ({
         ...t,
         id: t._id.toString(),
-        _id: t._id.toString(),
         projectId: t.projectId.toString(),
         assigneeId: t.assigneeId?.toString(),
-    }));
+    })) as Task[];
 }
 
 export async function getUsers(): Promise<User[]> {
@@ -80,7 +78,6 @@ export async function getUsers(): Promise<User[]> {
     return users.map(u => ({
         ...u,
         id: u._id.toString(),
-        _id: u._id.toString(),
     })) as User[];
 }
 
