@@ -3,7 +3,7 @@ import type { Dispatch } from "react";
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { isPast } from 'date-fns';
-import { format, utcToZonedTime } from 'date-fns-tz';
+import { format, toZonedTime } from 'date-fns-tz';
 import { cn } from "@/lib/utils";
 import { CalendarIcon, ChevronLeft, ChevronRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -45,7 +45,7 @@ export default function TaskCard({ task, dispatch, users, userRole, projectId }:
         }
     };
 
-    const formattedDate = format(utcToZonedTime(dueDate, 'UTC'), 'MMM d', { timeZone: 'UTC' });
+    const formattedDate = format(toZonedTime(dueDate, 'UTC'), 'MMM d', { timeZone: 'UTC' });
 
     return (
         <Card className="bg-background shadow-md hover:shadow-lg transition-shadow">
