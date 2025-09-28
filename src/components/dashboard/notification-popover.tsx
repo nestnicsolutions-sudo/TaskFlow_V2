@@ -22,6 +22,8 @@ export default function NotificationPopover({ notifications: initialNotification
   const { toast } = useToast();
 
   useEffect(() => {
+    // This effect ensures that if new notifications arrive while the popover is closed,
+    // the component's state is updated.
     setNotifications(initialNotifications);
     if (!open) {
       setDisplayedNotifications(initialNotifications);
@@ -30,19 +32,22 @@ export default function NotificationPopover({ notifications: initialNotification
 
   const handleOpenChange = async (isOpen: boolean) => {
     setOpen(isOpen);
+
+    // When the popover is opened and there are notifications...
     if (isOpen && notifications.length > 0) {
       const notificationIds = notifications.map(n => n.id);
       
-      // Keep current notifications for display inside the popover
+      // Store the notifications to be displayed inside the popover.
       setDisplayedNotifications(notifications);
       
-      // Optimistically clear the badge count
+      // Optimistically clear the notification badge count immediately.
       setNotifications([]); 
 
+      // Then, send the request to the server to mark them as read.
       const result = await markNotificationsAsRead(notificationIds);
       if (!result.success) {
         toast({ title: "Error", description: "Failed to mark notifications as read.", variant: "destructive" });
-        // Revert optimistic update on failure
+        // If the server fails, revert the optimistic update to show the badge again.
         setNotifications(displayedNotifications);
       }
     }
