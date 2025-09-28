@@ -215,7 +215,7 @@ export async function updateTaskStatus(taskId: string, newStatus: TaskStatus, pr
             title: updatedTaskDoc.title,
             status: updatedTaskDoc.status,
             assigneeId: updatedTaskDoc.assigneeId?.toString(),
-            dueDate: updatedTaskDoc.dueDate,
+dueDate: updatedTaskDoc.dueDate,
             createdAt: updatedTaskDoc.createdAt,
         };
         return updatedTask;
@@ -324,10 +324,10 @@ export async function requestToJoinProject(projectId: string) {
     if (project.ownerId.equals(userId)) {
         return { success: false, message: 'You are the owner of this project.' };
     }
-    if (project.collaborators.some((c: any) => c.userId.equals(userId))) {
+    if (project.collaborators.some(c => c.userId.toString() === requestingUserId)) {
         return { success: false, message: 'You are already a collaborator on this project.' };
     }
-    if (project.joinRequests?.some((id: ObjectId) => id.equals(userId))) {
+    if (project.joinRequests?.some(id => id.toString() === requestingUserId)) {
         return { success: false, message: 'You have already requested to join this project.' };
     }
   
