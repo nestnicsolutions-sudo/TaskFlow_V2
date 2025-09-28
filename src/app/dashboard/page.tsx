@@ -35,7 +35,7 @@ export default async function DashboardPage() {
   }));
 
   return (
-    <div className="container mx-auto">
+    <div>
       <div className="flex items-center justify-between">
         <div className="space-y-1">
           <h2 className="text-2xl font-bold tracking-tight font-headline">
