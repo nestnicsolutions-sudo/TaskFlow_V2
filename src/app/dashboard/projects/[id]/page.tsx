@@ -5,12 +5,13 @@ import type { Project, Task, User, Message } from "@/lib/data";
 import { getSession } from "@/lib/auth";
 
 type ProjectPageProps = {
-    params: {
-        id: string;
-    };
+    params: { id: string };
+    searchParams: { [key: string]: string | string[] | undefined };
 };
 
-export default async function ProjectPage({ params: { id } }: ProjectPageProps) {
+
+export default async function ProjectPage({ params }: { params: { id: string } }) {
+    const { id } = params;
     const session = await getSession();
     if (!session?.user) {
         redirect('/login');
