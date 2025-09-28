@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from 'react';
+import { useState, Dispatch } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import {
@@ -10,7 +10,6 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-  DialogTrigger,
 } from '@/components/ui/dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -22,9 +21,10 @@ import { AlertCircle, Check, X } from 'lucide-react';
 type JoinRequestsProps = {
   project: Project;
   users: User[];
+  dispatch: Dispatch<any>;
 };
 
-export default function JoinRequests({ project, users }: JoinRequestsProps) {
+export default function JoinRequests({ project, users, dispatch }: JoinRequestsProps) {
   const [open, setOpen] = useState(false);
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
   const [selectedRole, setSelectedRole] = useState<Role>('viewer');
@@ -44,8 +44,9 @@ export default function JoinRequests({ project, users }: JoinRequestsProps) {
   const handleConfirmApproval = async () => {
     if (!selectedUser) return;
     const result = await approveJoinRequest(project.id, selectedUser.id, selectedRole);
-    if (result.success) {
+    if (result.success && result.project) {
       toast({ title: 'Success', description: `${selectedUser.name} has been added to the project.` });
+      dispatch({ type: 'SET_PROJECT', payload: result.project });
       setOpen(false);
     } else {
       toast({ title: 'Error', description: result.message, variant: 'destructive' });
@@ -54,8 +55,9 @@ export default function JoinRequests({ project, users }: JoinRequestsProps) {
   
   const handleDeny = async (userId: string) => {
     const result = await denyJoinRequest(project.id, userId);
-    if (result.success) {
-      toast({ title: 'Request Denied', description: 'The join request has been denied.' });
+    if (result.success && result.project) {
+        toast({ title: 'Request Denied', description: 'The join request has been denied.' });
+        dispatch({ type: 'SET_PROJECT', payload: result.project });
     } else {
       toast({ title: 'Error', description: result.message, variant: 'destructive' });
     }

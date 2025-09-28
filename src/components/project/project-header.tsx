@@ -30,7 +30,7 @@ export default function ProjectHeader({ project, users, currentUser, tasks, disp
                     {canManage && (
                         <AddTaskDialog project={project} users={users} dispatch={dispatch}><Button><Plus className="mr-2 h-4 w-4" />Add Task</Button></AddTaskDialog>
                     )}
-                    <InviteCollaboratorDialog project={project} users={users} disabled={userRole !== 'admin'}><Button variant="outline"><UserPlus className="mr-2 h-4 w-4"/>Invite</Button></InviteCollaboratorDialog>
+                    <InviteCollaboratorDialog project={project} users={users} dispatch={dispatch} disabled={userRole !== 'admin'}><Button variant="outline"><UserPlus className="mr-2 h-4 w-4"/>Invite</Button></InviteCollaboratorDialog>
                 </div>
             </div>
             <div className="mt-4 flex items-center gap-4">

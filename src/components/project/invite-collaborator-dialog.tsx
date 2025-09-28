@@ -1,4 +1,4 @@
-import { ReactNode, useState } from "react";
+import { ReactNode, useState, Dispatch } from "react";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -22,10 +22,11 @@ type InviteCollaboratorDialogProps = {
     children: ReactNode;
     project: Project;
     users: User[];
+    dispatch: Dispatch<any>;
     disabled?: boolean;
 }
 
-export default function InviteCollaboratorDialog({ children, project, users, disabled }: InviteCollaboratorDialogProps) {
+export default function InviteCollaboratorDialog({ children, project, users, dispatch, disabled }: InviteCollaboratorDialogProps) {
     const [open, setOpen] = useState(false);
     const [selectedUser, setSelectedUser] = useState("");
     const [selectedRole, setSelectedRole] = useState<"editor" | "viewer">("viewer");
@@ -43,8 +44,9 @@ export default function InviteCollaboratorDialog({ children, project, users, dis
         }
 
         const result = await inviteCollaborator(project.id, selectedUser, selectedRole);
-        if (result.success) {
+        if (result.success && result.project) {
             toast({ title: "Success", description: "Collaborator invited successfully." });
+            dispatch({ type: 'SET_PROJECT', payload: result.project });
             setOpen(false);
         } else {
             toast({ title: "Error", description: result.message || "Failed to invite collaborator.", variant: "destructive" });

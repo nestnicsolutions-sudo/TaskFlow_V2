@@ -1,7 +1,7 @@
-import { getProjectById, getTasksByProjectId, getUsers } from "@/app/actions";
+import { getProjectById, getTasksByProjectId, getUsers, getMessages } from "@/app/actions";
 import ProjectView from "@/components/project/project-view";
 import { notFound, redirect } from "next/navigation";
-import type { Project, Task, User } from "@/lib/data";
+import type { Project, Task, User, Message } from "@/lib/data";
 import { getSession } from "@/lib/auth";
 
 type ProjectPageProps = {
@@ -31,8 +31,8 @@ export default async function ProjectPage({ params }: ProjectPageProps) {
     
     const tasksData = await getTasksByProjectId(id);
     const usersData = await getUsers();
+    const messagesData = await getMessages(id);
 
-    // Manually construct plain objects to pass to the client component
     const project: Project = {
         id: projectData.id.toString(),
         name: projectData.name,
@@ -44,7 +44,7 @@ export default async function ProjectPage({ params }: ProjectPageProps) {
         })),
         joinRequests: projectData.joinRequests?.map(r => r.toString()) || [],
         createdAt: projectData.createdAt,
-    } as Project;
+    };
 
     const tasks: Task[] = tasksData.map(t => ({
         id: t.id.toString(),
@@ -54,7 +54,7 @@ export default async function ProjectPage({ params }: ProjectPageProps) {
         assigneeId: t.assigneeId?.toString(),
         dueDate: t.dueDate,
         createdAt: t.createdAt,
-    } as Task));
+    }));
 
     const users: User[] = usersData.map(u => ({
         id: u.id.toString(),
@@ -62,12 +62,21 @@ export default async function ProjectPage({ params }: ProjectPageProps) {
         email: u.email,
         avatarUrl: u.avatarUrl,
         createdAt: u.createdAt,
-    } as User));
+    }));
+
+    const messages: Message[] = messagesData.map(m => ({
+        id: m.id.toString(),
+        projectId: m.projectId.toString(),
+        userId: m.userId.toString(),
+        text: m.text,
+        createdAt: m.createdAt,
+    }));
 
     return (
         <ProjectView 
             initialProject={project}
             initialTasks={tasks}
+            initialMessages={messages}
             users={users}
             currentUser={currentUser}
         />

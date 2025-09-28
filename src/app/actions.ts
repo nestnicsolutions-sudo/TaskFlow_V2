@@ -3,7 +3,7 @@
 import 'dotenv/config';
 import { revalidatePath } from "next/cache";
 import { suggestSubtasks as suggestSubtasksFlow } from "@/ai/ai-suggest-subtasks";
-import { Project, Task, TaskStatus, User, Role } from "@/lib/data";
+import { Project, Task, TaskStatus, User, Role, Message } from "@/lib/data";
 import { connectToDatabase } from "@/lib/mongodb";
 import { ObjectId } from "mongodb";
 import { getSession } from '@/lib/auth';
@@ -27,7 +27,7 @@ export async function getProjects(userId: string): Promise<Project[]> {
     }).toArray();
 
     return projects.map(p => ({
-        id: p._id.toString(),
+        id: p._id!.toString(),
         name: p.name,
         description: p.description,
         ownerId: p.ownerId.toString(),
@@ -37,7 +37,7 @@ export async function getProjects(userId: string): Promise<Project[]> {
         })),
         joinRequests: p.joinRequests?.map((r: any) => r.toString()) || [],
         createdAt: p.createdAt,
-    } as Project));
+    }));
 }
 
 export async function getProjectById(id: string): Promise<Project | null> {
@@ -51,8 +51,7 @@ export async function getProjectById(id: string): Promise<Project | null> {
     }
     
     const project: Project = {
-        id: projectDoc._id.toString(),
-        _id: projectDoc._id,
+        id: projectDoc._id!.toString(),
         name: projectDoc.name,
         description: projectDoc.description,
         ownerId: projectDoc.ownerId.toString(),
@@ -74,14 +73,14 @@ export async function getTasksByProjectId(projectId: string): Promise<Task[]> {
     const db = await getDb();
     const tasks = await db.collection<Task>('tasks').find({ projectId: new ObjectId(projectId) as any }).toArray();
     return tasks.map(t => ({
-        id: t._id.toString(),
+        id: t._id!.toString(),
         projectId: t.projectId.toString(),
         assigneeId: t.assigneeId?.toString(),
         dueDate: t.dueDate,
         createdAt: t.createdAt,
         title: t.title,
         status: t.status,
-    } as Task));
+    }));
 }
 
 export async function getUsers(): Promise<User[]> {
@@ -89,12 +88,12 @@ export async function getUsers(): Promise<User[]> {
     // Exclude password field from being sent to client
     const users = await db.collection<User>('users').find({}, { projection: { password: 0 } }).toArray();
     return users.map(u => ({
-        id: u._id.toString(),
+        id: u._id!.toString(),
         name: u.name,
         email: u.email,
         avatarUrl: u.avatarUrl,
         createdAt: u.createdAt,
-    } as User));
+    }));
 }
 
 export async function createProject(prevState: any, formData: FormData) {
@@ -139,7 +138,7 @@ export async function createProject(prevState: any, formData: FormData) {
     
     revalidatePath("/dashboard");
     if (newProject) {
-        revalidatePath(`/dashboard/projects/${newProject._id.toString()}`);
+        revalidatePath(`/dashboard/projects/${newProject._id!.toString()}`);
     }
     console.log('[createProject] Action finished successfully.');
   } catch (error) {
@@ -177,16 +176,15 @@ export async function createTask(formData: FormData) {
 
     if (!newTaskDoc) return null;
     
-    // Return a plain object, converting ObjectIds to strings
     const newTask: Task = {
-        id: newTaskDoc._id.toString(),
+        id: newTaskDoc._id!.toString(),
         projectId: newTaskDoc.projectId.toString(),
         title: newTaskDoc.title,
         status: newTaskDoc.status,
         assigneeId: newTaskDoc.assigneeId?.toString(),
         dueDate: newTaskDoc.dueDate,
-        createdAt: newTaskDoc.createdAt,
-    } as Task;
+createdAt: newTaskDoc.createdAt,
+    };
     
     return newTask;
 }
@@ -208,14 +206,14 @@ export async function updateTaskStatus(taskId: string, newStatus: TaskStatus, pr
         if (!updatedTaskDoc) return null;
 
         const updatedTask: Task = {
-            id: updatedTaskDoc._id.toString(),
+            id: updatedTaskDoc._id!.toString(),
             projectId: updatedTaskDoc.projectId.toString(),
             title: updatedTaskDoc.title,
             status: updatedTaskDoc.status,
             assigneeId: updatedTaskDoc.assigneeId?.toString(),
             dueDate: updatedTaskDoc.dueDate,
             createdAt: updatedTaskDoc.createdAt,
-        } as Task;
+        };
         return updatedTask;
     }
     return null;
@@ -283,7 +281,8 @@ export async function inviteCollaborator(projectId: string, userId: string, role
             { $push: { collaborators: { userId: new ObjectId(userId), role } as any } }
         );
         revalidatePath(`/dashboard/projects/${projectId}`);
-        return { success: true };
+        const updatedProject = await getProjectById(projectId);
+        return { success: true, project: updatedProject };
     }
     return { success: false, message: "User is already a collaborator." };
 }
@@ -317,8 +316,6 @@ export async function requestToJoinProject(projectId: string) {
       return { success: false, message: 'Project not found.' };
     }
   
-    const userId = new ObjectId(requestingUserId);
-  
     if (project.ownerId.toString() === requestingUserId) {
         return { success: false, message: 'You are the owner of this project.' };
     }
@@ -331,7 +328,7 @@ export async function requestToJoinProject(projectId: string) {
   
     const result = await db.collection<Project>('projects').updateOne(
       { _id: new ObjectId(projectId) as any },
-      { $addToSet: { joinRequests: userId } as any }
+      { $addToSet: { joinRequests: new ObjectId(requestingUserId) } as any }
     );
   
     if (result.modifiedCount > 0) {
@@ -371,7 +368,8 @@ export async function approveJoinRequest(projectId: string, userId: string, role
     if (result.modifiedCount > 0) {
       revalidatePath(`/dashboard/projects/${projectId}`);
       revalidatePath('/dashboard');
-      return { success: true };
+      const updatedProject = await getProjectById(projectId);
+      return { success: true, project: updatedProject };
     }
   
     return { success: false, message: 'Failed to approve join request.' };
@@ -401,8 +399,61 @@ export async function denyJoinRequest(projectId: string, userId: string) {
     if (result.modifiedCount > 0) {
         revalidatePath(`/dashboard/projects/${projectId}`);
         revalidatePath('/dashboard');
-        return { success: true };
+        const updatedProject = await getProjectById(projectId);
+        return { success: true, project: updatedProject };
     }
 
     return { success: false, message: 'Failed to deny join request.' };
+}
+
+export async function getMessages(projectId: string): Promise<Message[]> {
+    if (!ObjectId.isValid(projectId)) {
+        return [];
+    }
+    const db = await getDb();
+    const messages = await db.collection<Message>('messages').find({ projectId: new ObjectId(projectId) as any }).sort({ createdAt: 1 }).toArray();
+
+    return messages.map(m => ({
+        id: m._id!.toString(),
+        projectId: m.projectId.toString(),
+        userId: m.userId.toString(),
+        text: m.text,
+        createdAt: m.createdAt,
+    }));
+}
+
+export async function createMessage(projectId: string, text: string): Promise<Message | null> {
+    const session = await getSession();
+    if (!session?.user) {
+        throw new Error("Authentication required.");
+    }
+    const userId = session.user.id;
+
+    if (!ObjectId.isValid(projectId) || !ObjectId.isValid(userId)) {
+        throw new Error("Invalid project or user ID");
+    }
+
+    if (!text || text.trim() === '') {
+        throw new Error("Message text cannot be empty.");
+    }
+
+    const db = await getDb();
+    const result = await db.collection<Omit<Message, 'id' | '_id'>>('messages').insertOne({
+        projectId: new ObjectId(projectId),
+        userId: new ObjectId(userId),
+        text,
+        createdAt: new Date(),
+    });
+
+    const newMessageDoc = await db.collection<Message>('messages').findOne({ _id: result.insertedId });
+
+    if (!newMessageDoc) return null;
+
+    return {
+        id: newMessageDoc._id!.toString(),
+        projectId: newMessageDoc.projectId.toString(),
+        userId: newMessageDoc.userId.toString(),
+        text: newMessageDoc.text,
+        createdAt: newMessageDoc.createdAt,
+    };
 }
