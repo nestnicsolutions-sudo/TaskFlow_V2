@@ -63,10 +63,13 @@ export default function ProjectView({ initialProject, initialTasks, users, curre
             <div className="flex items-center gap-2">
                 <AITaskSuggester project={initialProject} tasks={tasks} dispatch={dispatch}/>
             </div>
-            <div className="flex-1 flex flex-col gap-4 overflow-y-auto">
-                <ProgressOverview tasks={tasks} />
+            
+            <ProgressOverview tasks={tasks} />
+
+            <div className="flex-1 min-h-0">
                 <KanbanBoard tasks={tasks} dispatch={dispatch} users={users} userRole={userRole} project={initialProject} />
             </div>
+
             <DeadlineNotifications tasks={tasks} />
         </div>
     );
