@@ -12,12 +12,18 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { createProject } from "@/app/actions";
 
-export default function CreateProjectForm({ userId, children, open, onOpenChange }: { userId: string, children: React.ReactNode, open: boolean, onOpenChange: (open: boolean) => void }) {
+export default function CreateProjectForm({ children, open, onOpenChange }: { children: React.ReactNode, open: boolean, onOpenChange: (open: boolean) => void }) {
+  
+  const handleSubmit = async (formData: FormData) => {
+    await createProject(formData);
+    onOpenChange(false);
+  }
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       {children}
       <DialogContent className="sm:max-w-[425px]">
-        <form action={createProject}>
+        <form action={handleSubmit}>
           <DialogHeader>
             <DialogTitle>Create New Project</DialogTitle>
             <DialogDescription>
@@ -25,7 +31,6 @@ export default function CreateProjectForm({ userId, children, open, onOpenChange
             </DialogDescription>
           </DialogHeader>
           <div className="grid gap-4 py-4">
-             <input type="hidden" name="userId" value={userId} />
             <div className="grid grid-cols-4 items-center gap-4">
               <Label htmlFor="name" className="text-right">
                 Name

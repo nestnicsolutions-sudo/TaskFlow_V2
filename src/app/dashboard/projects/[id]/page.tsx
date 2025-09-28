@@ -2,6 +2,7 @@ import { getProjectById, getTasksByProjectId, getUsers } from "@/app/actions";
 import ProjectView from "@/components/project/project-view";
 import { notFound, redirect } from "next/navigation";
 import type { Project, Task, User } from "@/lib/data";
+import { getSession } from "@/lib/auth";
 
 type ProjectPageProps = {
     params: {
@@ -10,10 +11,21 @@ type ProjectPageProps = {
 };
 
 export default async function ProjectPage({ params }: ProjectPageProps) {
+    const session = await getSession();
+    if (!session?.user) {
+        redirect('/login');
+    }
+    const currentUser = session.user as User;
+
     const projectData = await getProjectById(params.id);
     
     if (!projectData) {
         notFound();
+    }
+
+    const isParticipant = projectData.ownerId === currentUser.id || projectData.collaborators.some(c => c.userId === currentUser.id);
+    if (!isParticipant) {
+         return <p className="p-8 text-center text-muted-foreground">You do not have access to this project.</p>;
     }
     
     const tasksData = await getTasksByProjectId(params.id);
@@ -29,6 +41,7 @@ export default async function ProjectPage({ params }: ProjectPageProps) {
             userId: c.userId.toString(),
             role: c.role,
         })),
+        joinRequests: projectData.joinRequests || [],
         createdAt: projectData.createdAt,
     };
 
@@ -49,27 +62,6 @@ export default async function ProjectPage({ params }: ProjectPageProps) {
         avatarUrl: u.avatarUrl,
         createdAt: u.createdAt,
     }));
-    
-    // Since session is removed, we'll default to the project owner as the current user.
-    const currentUser = users.find(u => u.id === project.ownerId);
-
-    if (!currentUser) {
-        // This might happen if the owner isn't in the users list for some reason.
-        // As a fallback, we can take the first user or handle it gracefully.
-        if (users.length > 0) {
-            const fallbackUser = users[0];
-             return (
-                <ProjectView 
-                    initialProject={project}
-                    initialTasks={tasks}
-                    users={users}
-                    currentUser={fallbackUser}
-                />
-            );
-        }
-        // If no users exist at all, we can't render the view properly.
-        return <p className="p-8 text-center text-muted-foreground">Error: No users found in the system.</p>;
-    }
 
     return (
         <ProjectView 

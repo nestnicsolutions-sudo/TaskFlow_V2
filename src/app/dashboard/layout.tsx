@@ -4,18 +4,23 @@ import { FolderKanban, LogOut, Settings } from "lucide-react";
 import { SidebarContent, SidebarFooter, SidebarHeader, SidebarMenu, SidebarMenuItem, SidebarMenuButton } from "@/components/ui/sidebar";
 import Header from "@/components/dashboard/header";
 import Logo from "@/components/logo";
-import { getProjects, getUsers } from "@/app/actions";
+import { getProjects } from "@/app/actions";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
 import { Menu } from "lucide-react";
+import { getSession } from "@/lib/auth";
+import { redirect } from "next/navigation";
 import type { User } from "@/lib/data";
 
 export default async function DashboardLayout({ children }: { children: ReactNode }) {
-    const projects = await getProjects();
-    const users = await getUsers();
-
-    // Fallback user if no users are available, though this case should be rare.
-    const currentUser = users[0] || { id: '', name: 'Guest', email: '' };
+    const session = await getSession();
+    
+    if (!session?.user) {
+        redirect('/login');
+    }
+    const currentUser = session.user as User;
+    
+    const projects = await getProjects(currentUser.id);
 
     const sidebarContent = (
         <>

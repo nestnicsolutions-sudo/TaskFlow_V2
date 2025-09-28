@@ -7,15 +7,25 @@ import { suggestSubtasks as suggestSubtasksFlow } from "@/ai/ai-suggest-subtasks
 import { Project, Task, TaskStatus, User, Role } from "@/lib/data";
 import { connectToDatabase } from "@/lib/mongodb";
 import { ObjectId } from "mongodb";
+import { getSession } from '@/lib/auth';
 
 async function getDb() {
     const { db } = await connectToDatabase();
     return db;
 }
 
-export async function getProjects(): Promise<Project[]> {
+export async function getProjects(userId: string): Promise<Project[]> {
+    if (!ObjectId.isValid(userId)) return [];
+
     const db = await getDb();
-    const projects = await db.collection('projects').find({}).toArray();
+    const userObjectId = new ObjectId(userId);
+
+    const projects = await db.collection('projects').find({
+        $or: [
+            { ownerId: userObjectId },
+            { 'collaborators.userId': userObjectId }
+        ]
+    }).toArray();
 
     return projects.map(p => ({
         ...p,
@@ -89,7 +99,12 @@ export async function getUsers(): Promise<User[]> {
 }
 
 export async function createProject(formData: FormData) {
-    const ownerId = formData.get("userId") as string;
+    const session = await getSession();
+    if (!session?.user) {
+      throw new Error("Authentication required.");
+    }
+    
+    const ownerId = session.user.id;
     const name = formData.get("name") as string;
     const description = formData.get("description") as string;
     
@@ -235,10 +250,12 @@ export async function suggestTasks(projectDescription: string, existingTasks: Ta
     }
 }
 
-export async function requestToJoinProject(projectId: string, requestingUserId: string) {
-    if (!requestingUserId || !ObjectId.isValid(requestingUserId)) {
-      return { success: false, message: 'A valid requesting user must be provided.' };
+export async function requestToJoinProject(projectId: string) {
+    const session = await getSession();
+    if (!session?.user?.id || !ObjectId.isValid(session.user.id)) {
+      return { success: false, message: 'Authentication required.' };
     }
+    const requestingUserId = session.user.id;
 
     if (!projectId || !ObjectId.isValid(projectId)) {
       return { success: false, message: 'Invalid Project ID format.' };
@@ -278,11 +295,20 @@ export async function requestToJoinProject(projectId: string, requestingUserId: 
 }
 
 export async function approveJoinRequest(projectId: string, userId: string, role: Role) {
+    const session = await getSession();
+    if (!session?.user) {
+        return { success: false, message: 'Authentication required.' };
+    }
+
     if (!ObjectId.isValid(projectId) || !ObjectId.isValid(userId)) {
       return { success: false, message: 'Invalid ID.' };
     }
   
     const db = await getDb();
+    const project = await db.collection('projects').findOne({ _id: new ObjectId(projectId) });
+    if (project?.ownerId.toString() !== session.user.id) {
+        return { success: false, message: 'Only the project owner can approve requests.' };
+    }
   
     // Move user from joinRequests to collaborators
     const result = await db.collection('projects').updateOne(
@@ -303,11 +329,20 @@ export async function approveJoinRequest(projectId: string, userId: string, role
 }
   
 export async function denyJoinRequest(projectId: string, userId: string) {
+    const session = await getSession();
+    if (!session?.user) {
+        return { success: false, message: 'Authentication required.' };
+    }
+
     if (!ObjectId.isValid(projectId) || !ObjectId.isValid(userId)) {
         return { success: false, message: 'Invalid ID.' };
     }
 
     const db = await getDb();
+    const project = await db.collection('projects').findOne({ _id: new ObjectId(projectId) });
+    if (project?.ownerId.toString() !== session.user.id) {
+        return { success: false, message: 'Only the project owner can deny requests.' };
+    }
 
     const result = await db.collection('projects').updateOne(
         { _id: new ObjectId(projectId) },

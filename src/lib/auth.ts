@@ -8,6 +8,8 @@ import { connectToDatabase } from './mongodb';
 import bcrypt from 'bcryptjs';
 import { z } from 'zod';
 import { revalidatePath } from 'next/cache';
+import type { User } from './data';
+import { ObjectId } from 'mongodb';
 
 const secretKey = process.env.AUTH_SECRET;
 const key = new TextEncoder().encode(secretKey);
@@ -123,7 +125,25 @@ export async function logout() {
 }
 
 export async function getSession() {
-  const sessionCookie = (await cookies()).get('session')?.value;
+  const sessionCookie = cookies().get('session')?.value;
   if (!sessionCookie) return null;
-  return await decrypt(sessionCookie);
+  try {
+    const decrypted = await decrypt(sessionCookie);
+    if (decrypted && decrypted.user) {
+       // Re-serialize user object to ensure it's a plain object
+      return {
+        ...decrypted,
+        user: {
+          id: decrypted.user.id,
+          name: decrypted.user.name,
+          email: decrypted.user.email,
+          avatarUrl: decrypted.user.avatarUrl,
+        } as User
+      };
+    }
+    return null;
+  } catch(e) {
+    console.error("Session decryption failed:", e);
+    return null;
+  }
 }

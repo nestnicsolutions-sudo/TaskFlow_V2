@@ -4,14 +4,19 @@ import type { Project, User } from "@/lib/data";
 import CreateProjectButton from "@/components/dashboard/create-project-button";
 import JoinProjectDialog from "@/components/dashboard/join-project-dialog";
 import ViewRequestsDialog from "@/components/dashboard/view-requests-dialog";
+import { getSession } from "@/lib/auth";
+import { redirect } from "next/navigation";
 
 export default async function DashboardPage() {
-  const projectsData = await getProjects();
+  const session = await getSession();
+  if (!session?.user) {
+    redirect('/login');
+  }
+  const currentUser = session.user as User;
+
+  const projectsData = await getProjects(currentUser.id);
   const usersData = await getUsers();
   
-  // Since we removed session, we'll pick the first user as the "owner" for display purposes
-  const currentUser = usersData[0] || { id: 'fallback-user-id', name: 'Admin' };
-
   const projects: Project[] = projectsData.map((p: any) => ({
     id: p.id,
     name: p.name,
@@ -52,13 +57,13 @@ export default async function DashboardPage() {
               {totalJoinRequests > 0 && (
                 <ViewRequestsDialog projects={projectsOwned} users={users} requestCount={totalJoinRequests} />
               )}
-              <JoinProjectDialog users={users} />
-              <CreateProjectButton userId={currentUser.id} />
+              <JoinProjectDialog />
+              <CreateProjectButton />
             </div>
         </div>
       </div>
       <div className="flex-1 overflow-y-auto -mx-4 px-4">
-        <ProjectList initialProjects={projects} users={users} />
+        <ProjectList initialProjects={projects} users={users} currentUserId={currentUser.id} />
       </div>
     </div>
   );

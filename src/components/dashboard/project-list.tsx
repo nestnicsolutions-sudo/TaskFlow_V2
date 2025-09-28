@@ -1,13 +1,14 @@
 "use client";
 
-import type { User } from "@/lib/data";
+import type { User, Project } from "@/lib/data";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
 import { Users, FolderKanban } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Badge } from "../ui/badge";
 
-export default function ProjectList({ initialProjects, users }: { initialProjects: any[], users: User[] }) {
+export default function ProjectList({ initialProjects, users, currentUserId }: { initialProjects: Project[], users: User[], currentUserId: string }) {
     const getUserById = (id: string) => users.find(u => u.id === id);
 
     return (
@@ -17,10 +18,13 @@ export default function ProjectList({ initialProjects, users }: { initialProject
                     {initialProjects.map((project) => (
                         <Card key={project.id} className="flex flex-col">
                             <CardHeader>
-                                <CardTitle className="font-headline flex items-center gap-2">
-                                  <FolderKanban className="h-5 w-5 text-primary"/> 
-                                  {project.name}
-                                </CardTitle>
+                                <div className="flex items-center justify-between">
+                                    <CardTitle className="font-headline flex items-center gap-2">
+                                    <FolderKanban className="h-5 w-5 text-primary"/> 
+                                    {project.name}
+                                    </CardTitle>
+                                    {project.ownerId === currentUserId && <Badge>Owner</Badge>}
+                                </div>
                                 <CardDescription>{project.description}</CardDescription>
                             </CardHeader>
                             <CardContent className="flex-grow">
@@ -51,7 +55,7 @@ export default function ProjectList({ initialProjects, users }: { initialProject
             ) : (
                 <div className="text-center py-16 border-2 border-dashed rounded-lg">
                     <h3 className="text-lg font-medium text-muted-foreground">No projects yet</h3>
-                    <p className="text-sm text-muted-foreground mt-1">Get started by creating a new project.</p>
+                    <p className="text-sm text-muted-foreground mt-1">Get started by creating a new project or join one.</p>
                 </div>
             )}
         </div>
