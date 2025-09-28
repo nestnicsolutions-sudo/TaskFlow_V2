@@ -111,13 +111,13 @@ export default function ProjectView({ initialProject, initialTasks, initialMessa
                     </TabsList>
                 </div>
                 <TabsContent value="board" className="flex-1 min-h-0 space-y-4">
-                    <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+                    <div className="grid gap-4 md:grid-cols-1 lg:grid-cols-1">
                          <ProgressOverview tasks={tasks} />
                     </div>
                     <KanbanBoard tasks={tasks} dispatch={dispatch as Dispatch<any>} users={users} userRole={userRole} project={project} />
                 </TabsContent>
                  <TabsContent value="overview" className="flex-1 min-h-0">
-                    <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-2">
+                    <div className="grid gap-4 md:grid-cols-1 lg:grid-cols-1">
                          <ProgressOverview tasks={tasks} />
                     </div>
                 </TabsContent>
