@@ -35,19 +35,23 @@ export default async function DashboardPage() {
   }));
 
   return (
-    <div>
-      <div className="flex items-center justify-between">
-        <div className="space-y-1">
-          <h2 className="text-2xl font-bold tracking-tight font-headline">
-            Projects
-          </h2>
-          <p className="text-muted-foreground">
-            Your central hub for all ongoing and completed projects.
-          </p>
+    <div className="flex flex-col h-full">
+      <div className="sticky top-0 z-10 bg-background/95 backdrop-blur-sm -mx-4 -mt-4 px-4 pt-4 pb-2 border-b">
+        <div className="flex items-center justify-between mb-2">
+            <div className="space-y-1">
+            <h2 className="text-2xl font-bold tracking-tight font-headline">
+                Projects
+            </h2>
+            <p className="text-muted-foreground">
+                Your central hub for all ongoing and completed projects.
+            </p>
+            </div>
+            <CreateProjectButton userId={session.user.id} />
         </div>
-        <CreateProjectButton userId={session.user.id} />
       </div>
-      <ProjectList initialProjects={projects} users={users} />
+      <div className="flex-1 overflow-y-auto -mx-4 px-4">
+        <ProjectList initialProjects={projects} users={users} />
+      </div>
     </div>
   );
 }
