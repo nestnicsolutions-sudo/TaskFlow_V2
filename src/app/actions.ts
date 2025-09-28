@@ -1,4 +1,3 @@
-
 "use server"
 
 import 'dotenv/config';
@@ -20,7 +19,7 @@ export async function getProjects(userId: string): Promise<Project[]> {
     const db = await getDb();
     const userObjectId = new ObjectId(userId);
 
-    const projects = await db.collection('projects').find({
+    const projects = await db.collection<Project>('projects').find({
         $or: [
             { ownerId: userObjectId },
             { 'collaborators.userId': userObjectId }
@@ -36,7 +35,7 @@ export async function getProjects(userId: string): Promise<Project[]> {
             userId: c.userId.toString(),
         })),
         joinRequests: p.joinRequests?.map((r: any) => r.toString()) || [],
-    })) as Project[];
+    }));
 }
 
 export async function getProjectById(id: string): Promise<Project | null> {
@@ -44,7 +43,7 @@ export async function getProjectById(id: string): Promise<Project | null> {
         return null;
     }
     const db = await getDb();
-    const projectDoc = await db.collection('projects').findOne({ _id: new ObjectId(id) });
+    const projectDoc = await db.collection<Project>('projects').findOne({ _id: new ObjectId(id) as any });
     if (!projectDoc) {
         return null;
     }
@@ -71,7 +70,7 @@ export async function getTasksByProjectId(projectId: string): Promise<Task[]> {
         return [];
     }
     const db = await getDb();
-    const tasks = await db.collection('tasks').find({ projectId: new ObjectId(projectId) }).toArray();
+    const tasks = await db.collection<Task>('tasks').find({ projectId: new ObjectId(projectId) as any }).toArray();
     return tasks.map(t => ({
         id: t._id.toString(),
         _id: t._id,
@@ -81,13 +80,13 @@ export async function getTasksByProjectId(projectId: string): Promise<Task[]> {
         createdAt: t.createdAt,
         title: t.title,
         status: t.status,
-    })) as Task[];
+    }));
 }
 
 export async function getUsers(): Promise<User[]> {
     const db = await getDb();
     // Exclude password field from being sent to client
-    const users = await db.collection('users').find({}, { projection: { password: 0 } }).toArray();
+    const users = await db.collection<User>('users').find({}, { projection: { password: 0 } }).toArray();
     return users.map(u => ({
         id: u._id.toString(),
         _id: u._id,
@@ -95,7 +94,7 @@ export async function getUsers(): Promise<User[]> {
         email: u.email,
         avatarUrl: u.avatarUrl,
         createdAt: u.createdAt,
-    })) as User[];
+    }));
 }
 
 export async function createProject(prevState: any, formData: FormData) {
@@ -124,18 +123,18 @@ export async function createProject(prevState: any, formData: FormData) {
 
     const { db } = await connectToDatabase();
     console.log('[createProject] Database connected. Inserting document...');
-    const result = await db.collection("projects").insertOne({
+    const result = await db.collection<Project>("projects").insertOne({
       name,
       description,
       ownerId: new ObjectId(ownerId),
       collaborators: [],
       joinRequests: [],
       createdAt: new Date(),
-    });
+    } as Omit<Project, '_id' | 'id'> as any);
     console.log('[createProject] Document inserted with ID:', result.insertedId);
 
     const newProject = await db
-      .collection("projects")
+      .collection<Project>("projects")
       .findOne({ _id: result.insertedId });
     
     revalidatePath("/dashboard");
@@ -164,17 +163,17 @@ export async function createTask(formData: FormData) {
     }
 
     const db = await getDb();
-    const result = await db.collection('tasks').insertOne({
+    const result = await db.collection<Task>('tasks').insertOne({
         projectId: new ObjectId(projectId),
         title,
         status: 'To Do',
         assigneeId: assigneeId ? new ObjectId(assigneeId) : undefined,
         dueDate: new Date(dueDate),
         createdAt: new Date(),
-    });
+    } as Omit<Task, '_id' | 'id'> as any);
 
     revalidatePath(`/dashboard/projects/${projectId}`);
-    const newTaskDoc = await db.collection('tasks').findOne({ _id: result.insertedId });
+    const newTaskDoc = await db.collection<Task>('tasks').findOne({ _id: result.insertedId });
 
     if (!newTaskDoc) return null;
     
@@ -198,14 +197,14 @@ export async function updateTaskStatus(taskId: string, newStatus: TaskStatus, pr
         return null;
     }
     const db = await getDb();
-    const result = await db.collection('tasks').updateOne(
-        { _id: new ObjectId(taskId) },
+    const result = await db.collection<Task>('tasks').updateOne(
+        { _id: new ObjectId(taskId) as any },
         { $set: { status: newStatus } }
     );
     
     if (result.modifiedCount > 0) {
         revalidatePath(`/dashboard/projects/${projectId}`);
-        const updatedTaskDoc = await db.collection('tasks').findOne({ _id: new ObjectId(taskId) });
+        const updatedTaskDoc = await db.collection('tasks').findOne({ _id: new ObjectId(taskId) as any });
 
         if (!updatedTaskDoc) return null;
 
@@ -229,7 +228,7 @@ export async function deleteTask(taskId: string, projectId: string) {
         return { success: false, message: "Invalid ID" };
     }
     const db = await getDb();
-    const result = await db.collection('tasks').deleteOne({ _id: new ObjectId(taskId) });
+    const result = await db.collection<Task>('tasks').deleteOne({ _id: new ObjectId(taskId) as any });
 
     if (result.deletedCount > 0) {
         revalidatePath(`/dashboard/projects/${projectId}`);
@@ -250,9 +249,8 @@ export async function deleteProject(projectId: string) {
 
     const db = await getDb();
     const projectObjectId = new ObjectId(projectId);
-    const userObjectId = new ObjectId(session.user.id);
 
-    const project = await db.collection('projects').findOne({ _id: projectObjectId });
+    const project = await db.collection<Project>('projects').findOne({ _id: projectObjectId as any });
 
     if (!project) {
         return { success: false, message: 'Project not found.' };
@@ -263,10 +261,10 @@ export async function deleteProject(projectId: string) {
     }
 
     // Delete the project
-    await db.collection('projects').deleteOne({ _id: projectObjectId });
+    await db.collection<Project>('projects').deleteOne({ _id: projectObjectId as any });
 
     // Delete all tasks associated with the project
-    await db.collection('tasks').deleteMany({ projectId: projectObjectId });
+    await db.collection<Task>('tasks').deleteMany({ projectId: projectObjectId as any });
 
     revalidatePath('/dashboard');
     
@@ -279,12 +277,12 @@ export async function inviteCollaborator(projectId: string, userId: string, role
         return { success: false, message: "Invalid project or user ID." };
     }
     const db = await getDb();
-    const project = await db.collection('projects').findOne({ _id: new ObjectId(projectId) });
+    const project = await db.collection<Project>('projects').findOne({ _id: new ObjectId(projectId) as any });
 
     if (project && !project.collaborators.some((c: any) => c.userId.toString() === userId)) {
-        await db.collection('projects').updateOne(
-            { _id: new ObjectId(projectId) },
-            { $push: { collaborators: { userId: new ObjectId(userId), role } } }
+        await db.collection<Project>('projects').updateOne(
+            { _id: new ObjectId(projectId) as any },
+            { $push: { collaborators: { userId: new ObjectId(userId), role } as any } }
         );
         revalidatePath(`/dashboard/projects/${projectId}`);
         return { success: true };
@@ -315,7 +313,7 @@ export async function requestToJoinProject(projectId: string) {
     }
   
     const db = await getDb();
-    const project = await db.collection('projects').findOne({ _id: new ObjectId(projectId) });
+    const project = await db.collection<Project>('projects').findOne({ _id: new ObjectId(projectId) as any });
   
     if (!project) {
       return { success: false, message: 'Project not found.' };
@@ -333,9 +331,9 @@ export async function requestToJoinProject(projectId: string) {
         return { success: false, message: 'You have already requested to join this project.' };
     }
   
-    const result = await db.collection('projects').updateOne(
-      { _id: new ObjectId(projectId) },
-      { $addToSet: { joinRequests: userId } }
+    const result = await db.collection<Project>('projects').updateOne(
+      { _id: new ObjectId(projectId) as any },
+      { $addToSet: { joinRequests: userId } as any }
     );
   
     if (result.modifiedCount > 0) {
@@ -358,17 +356,17 @@ export async function approveJoinRequest(projectId: string, userId: string, role
     }
   
     const db = await getDb();
-    const project = await db.collection('projects').findOne({ _id: new ObjectId(projectId) });
+    const project = await db.collection<Project>('projects').findOne({ _id: new ObjectId(projectId) as any });
     if (project?.ownerId.toString() !== session.user.id) {
         return { success: false, message: 'Only the project owner can approve requests.' };
     }
   
     // Move user from joinRequests to collaborators
-    const result = await db.collection('projects').updateOne(
-      { _id: new ObjectId(projectId) },
+    const result = await db.collection<Project>('projects').updateOne(
+      { _id: new ObjectId(projectId) as any },
       {
-        $pull: { joinRequests: new ObjectId(userId) },
-        $addToSet: { collaborators: { userId: new ObjectId(userId), role } },
+        $pull: { joinRequests: new ObjectId(userId) } as any,
+        $addToSet: { collaborators: { userId: new ObjectId(userId), role } } as any,
       }
     );
   
@@ -392,14 +390,14 @@ export async function denyJoinRequest(projectId: string, userId: string) {
     }
 
     const db = await getDb();
-    const project = await db.collection('projects').findOne({ _id: new ObjectId(projectId) });
+    const project = await db.collection<Project>('projects').findOne({ _id: new ObjectId(projectId) as any });
     if (project?.ownerId.toString() !== session.user.id) {
         return { success: false, message: 'Only the project owner can deny requests.' };
     }
 
-    const result = await db.collection('projects').updateOne(
-        { _id: new ObjectId(projectId) },
-        { $pull: { joinRequests: new ObjectId(userId) } }
+    const result = await db.collection<Project>('projects').updateOne(
+        { _id: new ObjectId(projectId) as any },
+        { $pull: { joinRequests: new ObjectId(userId) } as any }
     );
 
     if (result.modifiedCount > 0) {
