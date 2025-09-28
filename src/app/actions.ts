@@ -69,11 +69,14 @@ export async function getTasksByProjectId(projectId: string): Promise<Task[]> {
     const db = await getDb();
     const tasks = await db.collection('tasks').find({ projectId: new ObjectId(projectId) }).toArray();
     return tasks.map(t => ({
-        ...t,
         id: t._id.toString(),
         _id: t._id,
         projectId: t.projectId.toString(),
         assigneeId: t.assigneeId?.toString(),
+        dueDate: t.dueDate,
+        createdAt: t.createdAt,
+        title: t.title,
+        status: t.status,
     })) as Task[];
 }
 
@@ -82,9 +85,12 @@ export async function getUsers(): Promise<User[]> {
     // Exclude password field from being sent to client
     const users = await db.collection('users').find({}, { projection: { password: 0 } }).toArray();
     return users.map(u => ({
-        ...u,
         id: u._id.toString(),
         _id: u._id,
+        name: u.name,
+        email: u.email,
+        avatarUrl: u.avatarUrl,
+        createdAt: u.createdAt
     })) as User[];
 }
 
@@ -181,6 +187,20 @@ export async function updateTaskStatus(taskId: string, newStatus: TaskStatus, pr
         return updatedTask;
     }
     return null;
+}
+
+export async function deleteTask(taskId: string, projectId: string) {
+    if (!ObjectId.isValid(taskId) || !ObjectId.isValid(projectId)) {
+        return { success: false, message: "Invalid ID" };
+    }
+    const db = await getDb();
+    const result = await db.collection('tasks').deleteOne({ _id: new ObjectId(taskId) });
+
+    if (result.deletedCount > 0) {
+        revalidatePath(`/dashboard/projects/${projectId}`);
+        return { success: true };
+    }
+    return { success: false, message: "Failed to delete task." };
 }
 
 export async function inviteCollaborator(projectId: string, userId: string, role: 'editor' | 'viewer') {

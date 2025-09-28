@@ -29,7 +29,7 @@ export default function KanbanColumn({ status, tasks, dispatch, users, userRole,
                 <h3 className="font-semibold text-sm">{status}</h3>
                 <span className="ml-auto text-xs font-mono bg-muted text-muted-foreground rounded-full px-2 py-0.5">{tasks.length}</span>
             </div>
-            <div className="flex flex-col gap-4 p-2 rounded-b-lg bg-secondary/50 min-h-[200px]">
+            <div className="flex flex-col gap-4 p-2 rounded-b-lg bg-secondary/50 h-[400px] overflow-y-auto">
                 {tasks.sort((a,b) => new Date(a.dueDate).getTime() - new Date(b.dueDate).getTime()).map(task => (
                     <TaskCard
                         key={task.id}

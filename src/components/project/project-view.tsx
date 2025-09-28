@@ -10,7 +10,8 @@ import AITaskSuggester from "./ai-task-suggester";
 
 type Action =
     | { type: 'UPDATE_TASK_STATUS'; payload: { taskId: string; newStatus: TaskStatus } }
-    | { type: 'ADD_TASK'; payload: Task };
+    | { type: 'ADD_TASK'; payload: Task }
+    | { type: 'DELETE_TASK'; payload: { taskId: string } };
 
 const tasksReducer = (state: Task[], action: Action): Task[] => {
     switch (action.type) {
@@ -26,6 +27,8 @@ const tasksReducer = (state: Task[], action: Action): Task[] => {
                 return state;
             }
             return [...state, action.payload];
+        case 'DELETE_TASK':
+            return state.filter(task => task.id !== action.payload.taskId);
         default:
             return state;
     }

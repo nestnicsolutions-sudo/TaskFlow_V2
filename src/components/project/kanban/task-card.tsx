@@ -5,9 +5,9 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { isPast } from 'date-fns';
 import { format, toZonedTime } from 'date-fns-tz';
 import { cn } from "@/lib/utils";
-import { CalendarIcon, ChevronLeft, ChevronRight } from "lucide-react";
+import { CalendarIcon, ChevronLeft, ChevronRight, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { updateTaskStatus } from "@/app/actions";
+import { updateTaskStatus, deleteTask } from "@/app/actions";
 import { useToast } from "@/hooks/use-toast";
 
 const statusOrder: TaskStatus[] = ['To Do', 'In Progress', 'Pending', 'Completed'];
@@ -44,6 +44,19 @@ export default function TaskCard({ task, dispatch, users, userRole, projectId }:
             }
         }
     };
+    
+    const handleDelete = async () => {
+        // Optimistic UI update
+        dispatch({ type: 'DELETE_TASK', payload: { taskId: task.id } });
+        const result = await deleteTask(task.id, projectId);
+        if (!result.success) {
+            // Revert on failure (though it's tricky, maybe just show an error)
+             toast({ title: 'Error', description: result.message || 'Failed to delete task.', variant: 'destructive' });
+             // A more robust solution might re-add the task to the state
+        } else {
+             toast({ title: 'Success', description: 'Task deleted.' });
+        }
+    }
 
     const formattedDate = format(toZonedTime(dueDate, 'UTC'), 'MMM d', { timeZone: 'UTC' });
 
@@ -68,24 +81,38 @@ export default function TaskCard({ task, dispatch, users, userRole, projectId }:
             </CardContent>
             {canManage && (
                 <CardFooter className="p-2 bg-secondary/30 flex justify-between">
-                    <Button 
-                        variant="ghost" 
-                        size="icon" 
-                        className="h-7 w-7"
-                        disabled={currentStatusIndex === 0}
-                        onClick={() => handleStatusChange('prev')}
-                    >
-                        <ChevronLeft className="h-4 w-4" />
-                    </Button>
-                    <Button 
-                        variant="ghost" 
-                        size="icon" 
-                        className="h-7 w-7"
-                        disabled={currentStatusIndex === statusOrder.length - 1}
-                        onClick={() => handleStatusChange('next')}
-                    >
-                        <ChevronRight className="h-4 w-4" />
-                    </Button>
+                    {task.status === 'Completed' ? (
+                         <Button 
+                            variant="ghost" 
+                            size="sm"
+                            className="w-full text-destructive hover:bg-destructive/10 hover:text-destructive"
+                            onClick={handleDelete}
+                        >
+                            <Trash2 className="h-4 w-4 mr-2" />
+                            Delete
+                        </Button>
+                    ) : (
+                        <>
+                            <Button 
+                                variant="ghost" 
+                                size="icon" 
+                                className="h-7 w-7"
+                                disabled={currentStatusIndex === 0}
+                                onClick={() => handleStatusChange('prev')}
+                            >
+                                <ChevronLeft className="h-4 w-4" />
+                            </Button>
+                            <Button 
+                                variant="ghost" 
+                                size="icon" 
+                                className="h-7 w-7"
+                                disabled={currentStatusIndex === statusOrder.length - 1}
+                                onClick={() => handleStatusChange('next')}
+                            >
+                                <ChevronRight className="h-4 w-4" />
+                            </Button>
+                        </>
+                    )}
                 </CardFooter>
             )}
         </Card>
