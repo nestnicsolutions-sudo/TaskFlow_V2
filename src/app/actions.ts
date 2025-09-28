@@ -99,7 +99,11 @@ export async function getUsers(): Promise<User[]> {
 }
 
 export async function createProject(prevState: any, formData: FormData) {
+  try {
+    console.log('[createProject] Action started.');
     const session = await getSession();
+    console.log('[createProject] Session object:', session);
+
     if (!session?.user) {
       throw new Error("Authentication required.");
     }
@@ -108,15 +112,18 @@ export async function createProject(prevState: any, formData: FormData) {
     const name = formData.get("name") as string;
     const description = formData.get("description") as string;
     
+    console.log(`[createProject] Name: ${name}, Description: ${description}, OwnerID: ${ownerId}`);
+
     if (!name || !description) {
         throw new Error("Project name and description are required.");
     }
     
     if (!ownerId || !ObjectId.isValid(ownerId)) {
-        throw new Error("Authentication required: No or invalid owner ID provided.");
+        throw new Error(`Authentication required: No or invalid owner ID provided. Received: ${ownerId}`);
     }
 
     const { db } = await connectToDatabase();
+    console.log('[createProject] Database connected. Inserting document...');
     const result = await db.collection("projects").insertOne({
       name,
       description,
@@ -125,6 +132,7 @@ export async function createProject(prevState: any, formData: FormData) {
       joinRequests: [],
       createdAt: new Date(),
     });
+    console.log('[createProject] Document inserted with ID:', result.insertedId);
 
     const newProject = await db
       .collection("projects")
@@ -134,6 +142,15 @@ export async function createProject(prevState: any, formData: FormData) {
     if (newProject) {
         revalidatePath(`/dashboard/projects/${newProject._id.toString()}`);
     }
+    console.log('[createProject] Action finished successfully.');
+  } catch (error) {
+    console.error('[createProject] CRITICAL ERROR:', error);
+    // This will be caught by useActionState and displayed to the user
+    if (error instanceof Error) {
+        throw new Error(error.message);
+    }
+    throw new Error('An unknown error occurred while creating the project.');
+  }
 }
 
 export async function createTask(formData: FormData) {
