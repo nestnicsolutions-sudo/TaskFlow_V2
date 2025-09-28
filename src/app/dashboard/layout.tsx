@@ -1,7 +1,7 @@
 import type { ReactNode } from "react";
 import Link from "next/link";
 import { FolderKanban, LogOut, Settings } from "lucide-react";
-import { Sidebar, SidebarContent, SidebarFooter, SidebarHeader, SidebarMenu, SidebarMenuItem, SidebarMenuButton } from "@/components/ui/sidebar";
+import { SidebarContent, SidebarFooter, SidebarHeader, SidebarMenu, SidebarMenuItem, SidebarMenuButton } from "@/components/ui/sidebar";
 import Header from "@/components/dashboard/header";
 import Logo from "@/components/logo";
 import { getProjects } from "@/app/actions";
@@ -73,7 +73,7 @@ export default async function DashboardLayout({ children }: { children: ReactNod
                     {sidebarContent}
                 </div>
             </aside>
-            <div className="flex flex-col">
+            <div className="flex flex-col h-screen overflow-hidden">
                  <header className="flex h-16 items-center gap-4 border-b bg-background px-6">
                     <Sheet>
                         <SheetTrigger asChild>
