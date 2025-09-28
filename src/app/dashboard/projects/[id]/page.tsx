@@ -10,8 +10,7 @@ type ProjectPageProps = {
     };
 };
 
-export default async function ProjectPage({ params }: ProjectPageProps) {
-    const { id } = params;
+export default async function ProjectPage({ params: { id } }: ProjectPageProps) {
     const session = await getSession();
     if (!session?.user) {
         redirect('/login');
