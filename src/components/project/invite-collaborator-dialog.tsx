@@ -14,6 +14,9 @@ import { Label } from "@/components/ui/label";
 import type { Project, User } from "@/lib/data";
 import { inviteCollaborator } from "@/app/actions";
 import { useToast } from "@/hooks/use-toast";
+import { Input } from "../ui/input";
+import { Copy } from "lucide-react";
+import { Separator } from "../ui/separator";
 
 type InviteCollaboratorDialogProps = {
     children: ReactNode;
@@ -26,6 +29,7 @@ export default function InviteCollaboratorDialog({ children, project, users, dis
     const [open, setOpen] = useState(false);
     const [selectedUser, setSelectedUser] = useState("");
     const [selectedRole, setSelectedRole] = useState<"editor" | "viewer">("viewer");
+    const [copied, setCopied] = useState(false);
     const { toast } = useToast();
 
     const availableUsers = users.filter(user => 
@@ -47,45 +51,68 @@ export default function InviteCollaboratorDialog({ children, project, users, dis
         }
     };
 
+    const handleCopy = () => {
+        navigator.clipboard.writeText(project.id);
+        setCopied(true);
+        setTimeout(() => setCopied(false), 2000);
+    };
+
+
     return (
         <Dialog open={open} onOpenChange={setOpen}>
             <DialogTrigger asChild disabled={disabled}>{children}</DialogTrigger>
-            <DialogContent className="sm:max-w-[425px]">
+            <DialogContent className="sm:max-w-md">
                 <DialogHeader>
-                    <DialogTitle>Invite Collaborator</DialogTitle>
+                    <DialogTitle>Invite & Share</DialogTitle>
                     <DialogDescription>
-                        Invite a registered user to collaborate on "{project.name}".
+                        Share the project ID or invite a registered user to collaborate on "{project.name}".
                     </DialogDescription>
                 </DialogHeader>
-                <div className="grid gap-4 py-4">
-                    <div className="grid grid-cols-4 items-center gap-4">
-                        <Label htmlFor="user" className="text-right">User</Label>
-                        <Select onValueChange={setSelectedUser} value={selectedUser}>
-                            <SelectTrigger className="col-span-3">
-                                <SelectValue placeholder="Select a user" />
-                            </SelectTrigger>
-                            <SelectContent>
-                                {availableUsers.map(user => (
-                                    <SelectItem key={user.id} value={user.id}>{user.name} ({user.email})</SelectItem>
-                                ))}
-                            </SelectContent>
-                        </Select>
+                <div className="space-y-4 py-2">
+                    <div className="space-y-2">
+                        <Label htmlFor="projectId">Project ID</Label>
+                        <div className="flex items-center gap-2">
+                            <Input id="projectId" value={project.id} readOnly className="bg-secondary" />
+                            <Button variant="outline" size="icon" onClick={handleCopy}>
+                                <Copy className="h-4 w-4" />
+                            </Button>
+                        </div>
+                        {copied && <p className="text-xs text-green-600">Copied to clipboard!</p>}
                     </div>
-                    <div className="grid grid-cols-4 items-center gap-4">
-                        <Label htmlFor="role" className="text-right">Role</Label>
-                        <Select onValueChange={(value) => setSelectedRole(value as "editor" | "viewer")} value={selectedRole}>
-                            <SelectTrigger className="col-span-3">
-                                <SelectValue placeholder="Select a role" />
-                            </SelectTrigger>
-                            <SelectContent>
-                                <SelectItem value="viewer">Viewer</SelectItem>
-                                <SelectItem value="editor">Editor</SelectItem>
-                            </SelectContent>
-                        </Select>
+
+                    <div className="flex items-center gap-2">
+                        <Separator className="flex-1" />
+                        <span className="text-xs text-muted-foreground">OR</span>
+                        <Separator className="flex-1" />
+                    </div>
+
+                    <div className="space-y-2">
+                        <Label>Invite a user directly</Label>
+                        <div className="grid grid-cols-1 sm:grid-cols-[1fr_auto] gap-2">
+                            <Select onValueChange={setSelectedUser} value={selectedUser}>
+                                <SelectTrigger>
+                                    <SelectValue placeholder="Select a user" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    {availableUsers.length > 0 ? availableUsers.map(user => (
+                                        <SelectItem key={user.id} value={user.id}>{user.name} ({user.email})</SelectItem>
+                                    )) : <p className="p-2 text-xs text-muted-foreground">No new users to invite.</p>}
+                                </SelectContent>
+                            </Select>
+                            <Select onValueChange={(value) => setSelectedRole(value as "editor" | "viewer")} value={selectedRole}>
+                                <SelectTrigger className="w-full sm:w-[100px]">
+                                    <SelectValue placeholder="Role" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="viewer">Viewer</SelectItem>
+                                    <SelectItem value="editor">Editor</SelectItem>
+                                </SelectContent>
+                            </Select>
+                        </div>
                     </div>
                 </div>
                 <DialogFooter>
-                    <Button onClick={handleInvite}>Send Invite</Button>
+                    <Button onClick={handleInvite} disabled={!selectedUser}>Send Invite</Button>
                 </DialogFooter>
             </DialogContent>
         </Dialog>
