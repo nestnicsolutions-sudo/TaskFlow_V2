@@ -5,7 +5,7 @@ import { SidebarContent, SidebarFooter, SidebarHeader, SidebarMenu, SidebarMenuI
 import Header from "@/components/dashboard/header";
 import Logo from "@/components/logo";
 import { getProjects } from "@/app/actions";
-import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
 import { Menu } from "lucide-react";
 import { getSession, logout } from "@/lib/auth";
@@ -85,7 +85,10 @@ export default async function DashboardLayout({ children }: { children: ReactNod
                                 <span className="sr-only">Toggle navigation menu</span>
                             </Button>
                         </SheetTrigger>
-                        <SheetContent side="left" className="flex flex-col">
+                        <SheetContent side="left" className="flex flex-col p-0">
+                           <SheetHeader className="p-2">
+                             <SheetTitle className="sr-only">Navigation Menu</SheetTitle>
+                           </SheetHeader>
                            {sidebarContent}
                         </SheetContent>
                     </Sheet>
