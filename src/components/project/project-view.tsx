@@ -47,7 +47,8 @@ export default function ProjectView({ initialProject, initialTasks, users, curre
     
     const userRole = useMemo(() => {
         if (initialProject.ownerId === currentUser.id) return 'admin';
-        return initialProject.collaborators.find((c:any) => c.userId === currentUser.id)?.role || 'viewer';
+        const collaborator = initialProject.collaborators.find((c:any) => c.userId === currentUser.id);
+        return collaborator ? collaborator.role : 'viewer';
     }, [initialProject, currentUser]);
 
     return (
@@ -66,7 +67,7 @@ export default function ProjectView({ initialProject, initialTasks, users, curre
             
             <ProgressOverview tasks={tasks} />
 
-            <div className="flex-1 min-h-0">
+            <div className="flex-1">
                 <KanbanBoard tasks={tasks} dispatch={dispatch} users={users} userRole={userRole} project={initialProject} />
             </div>
 
