@@ -88,7 +88,7 @@ export default async function DashboardLayout({ children }: { children: ReactNod
                     </Sheet>
                     <Header user={session.user}/>
                 </header>
-                <main className="flex-1 p-4 md:p-6 lg:p-8 overflow-auto">
+                <main className="flex-1 overflow-auto p-4 md:p-6 lg:p-8">
                     {children}
                 </main>
             </div>
