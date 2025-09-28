@@ -11,9 +11,9 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { createProject } from "@/app/actions";
-import { useActionState, useEffect } from "react";
+import { useEffect } from "react";
 import { useToast } from "@/hooks/use-toast";
-import { useFormStatus } from "react-dom";
+import { useFormState, useFormStatus } from "react-dom";
 
 type FormState = {
   success: boolean;
@@ -46,7 +46,7 @@ export default function CreateProjectForm({ children, open, onOpenChange }: { ch
     }
   };
 
-  const [state, formAction] = useActionState(createProjectAction, initialState);
+  const [state, formAction] = useFormState(createProjectAction, initialState);
 
   useEffect(() => {
     if (state.success) {
