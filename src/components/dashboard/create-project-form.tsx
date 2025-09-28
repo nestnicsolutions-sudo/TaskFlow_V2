@@ -12,10 +12,9 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { createProject } from "@/app/actions";
 import { useToast } from "@/hooks/use-toast";
-import { useFormStatus } from "react-dom";
+import { useState } from "react";
 
-function SubmitButton() {
-    const { pending } = useFormStatus();
+function SubmitButton({ pending }: { pending: boolean }) {
     return (
         <Button type="submit" disabled={pending}>
             {pending ? 'Creating...' : 'Create Project'}
@@ -25,8 +24,14 @@ function SubmitButton() {
 
 export default function CreateProjectForm({ children, open, onOpenChange }: { children: React.ReactNode, open: boolean, onOpenChange: (open: boolean) => void }) {
   const { toast } = useToast();
+  const [isPending, setIsPending] = useState(false);
   
-  const formAction = async (formData: FormData) => {
+  const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    setIsPending(true);
+
+    const formData = new FormData(event.currentTarget);
+    
     try {
       await createProject(null, formData);
       onOpenChange(false);
@@ -40,6 +45,8 @@ export default function CreateProjectForm({ children, open, onOpenChange }: { ch
         description: e instanceof Error ? e.message : "An unknown error occurred.",
         variant: "destructive",
       });
+    } finally {
+        setIsPending(false);
     }
   };
 
@@ -47,7 +54,7 @@ export default function CreateProjectForm({ children, open, onOpenChange }: { ch
     <Dialog open={open} onOpenChange={onOpenChange}>
       {children}
       <DialogContent className="sm:max-w-[425px]">
-        <form action={formAction}>
+        <form onSubmit={handleSubmit}>
           <DialogHeader>
             <DialogTitle>Create New Project</DialogTitle>
             <DialogDescription>
@@ -79,7 +86,7 @@ export default function CreateProjectForm({ children, open, onOpenChange }: { ch
             </div>
           </div>
           <DialogFooter>
-            <SubmitButton />
+            <SubmitButton pending={isPending} />
           </DialogFooter>
         </form>
       </DialogContent>
