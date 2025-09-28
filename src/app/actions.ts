@@ -27,15 +27,17 @@ export async function getProjects(userId: string): Promise<Project[]> {
     }).toArray();
 
     return projects.map(p => ({
-        ...p,
         id: p._id.toString(),
+        name: p.name,
+        description: p.description,
         ownerId: p.ownerId.toString(),
         collaborators: p.collaborators.map((c: any) => ({
-            ...c,
             userId: c.userId.toString(),
+            role: c.role,
         })),
         joinRequests: p.joinRequests?.map((r: any) => r.toString()) || [],
-    }));
+        createdAt: p.createdAt,
+    } as Project));
 }
 
 export async function getProjectById(id: string): Promise<Project | null> {
@@ -73,14 +75,13 @@ export async function getTasksByProjectId(projectId: string): Promise<Task[]> {
     const tasks = await db.collection<Task>('tasks').find({ projectId: new ObjectId(projectId) as any }).toArray();
     return tasks.map(t => ({
         id: t._id.toString(),
-        _id: t._id,
         projectId: t.projectId.toString(),
         assigneeId: t.assigneeId?.toString(),
         dueDate: t.dueDate,
         createdAt: t.createdAt,
         title: t.title,
         status: t.status,
-    }));
+    } as Task));
 }
 
 export async function getUsers(): Promise<User[]> {
@@ -89,12 +90,11 @@ export async function getUsers(): Promise<User[]> {
     const users = await db.collection<User>('users').find({}, { projection: { password: 0 } }).toArray();
     return users.map(u => ({
         id: u._id.toString(),
-        _id: u._id,
         name: u.name,
         email: u.email,
         avatarUrl: u.avatarUrl,
         createdAt: u.createdAt,
-    }));
+    } as User));
 }
 
 export async function createProject(prevState: any, formData: FormData) {
@@ -123,14 +123,14 @@ export async function createProject(prevState: any, formData: FormData) {
 
     const { db } = await connectToDatabase();
     console.log('[createProject] Database connected. Inserting document...');
-    const result = await db.collection<Project>("projects").insertOne({
+    const result = await db.collection<Omit<Project, 'id' | '_id'>>("projects").insertOne({
       name,
       description,
       ownerId: new ObjectId(ownerId),
       collaborators: [],
       joinRequests: [],
       createdAt: new Date(),
-    } as Omit<Project, '_id' | 'id'> as any);
+    });
     console.log('[createProject] Document inserted with ID:', result.insertedId);
 
     const newProject = await db
@@ -209,14 +209,13 @@ export async function updateTaskStatus(taskId: string, newStatus: TaskStatus, pr
 
         const updatedTask: Task = {
             id: updatedTaskDoc._id.toString(),
-            _id: updatedTaskDoc._id,
             projectId: updatedTaskDoc.projectId.toString(),
             title: updatedTaskDoc.title,
             status: updatedTaskDoc.status,
             assigneeId: updatedTaskDoc.assigneeId?.toString(),
-dueDate: updatedTaskDoc.dueDate,
+            dueDate: updatedTaskDoc.dueDate,
             createdAt: updatedTaskDoc.createdAt,
-        };
+        } as Task;
         return updatedTask;
     }
     return null;
