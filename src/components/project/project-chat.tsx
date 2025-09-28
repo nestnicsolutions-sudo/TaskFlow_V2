@@ -1,15 +1,28 @@
+
 "use client";
 
 import { useState, useEffect, useRef } from 'react';
 import type { Project, User, Message } from '@/lib/data';
-import { createMessage, getMessages } from '@/app/actions';
+import { createMessage, getMessages, clearChat } from '@/app/actions';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { Send } from 'lucide-react';
+import { Send, Trash2 } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 import { Skeleton } from '../ui/skeleton';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog"
+import { useToast } from '@/hooks/use-toast';
 
 type ProjectChatProps = {
     project: Project;
@@ -23,6 +36,7 @@ export default function ProjectChat({ project, users, currentUser, initialMessag
     const [newMessage, setNewMessage] = useState('');
     const [loading, setLoading] = useState(false);
     const scrollAreaRef = useRef<HTMLDivElement>(null);
+    const { toast } = useToast();
 
     const getUserById = (id: string) => users.find(u => u.id === id);
 
@@ -77,10 +91,66 @@ export default function ProjectChat({ project, users, currentUser, initialMessag
         }
     };
 
+    const handleClearChat = async () => {
+        // Optimistic update
+        setMessages([]);
+        
+        const result = await clearChat(project.id);
+        if (result.success) {
+            toast({
+                title: "Chat Cleared",
+                description: "The chat history for this project has been deleted.",
+            });
+        } else {
+            toast({
+                title: "Error",
+                description: result.message,
+                variant: "destructive",
+            });
+            // Re-fetch messages on failure
+            const latestMessages = await getMessages(project.id);
+            setMessages(latestMessages);
+        }
+    };
+    
+    const isOwner = project.ownerId === currentUser.id;
+
     return (
         <div className="flex flex-col h-full bg-secondary/50 rounded-lg border">
+            <div className="p-4 border-b flex justify-between items-center">
+                <h3 className="font-semibold">Project Chat</h3>
+                {isOwner && messages.length > 0 && (
+                     <AlertDialog>
+                        <AlertDialogTrigger asChild>
+                            <Button variant="destructive" size="sm">
+                                <Trash2 className="mr-2 h-4 w-4" />
+                                Clear Chat
+                            </Button>
+                        </AlertDialogTrigger>
+                        <AlertDialogContent>
+                            <AlertDialogHeader>
+                            <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
+                            <AlertDialogDescription>
+                                This action cannot be undone. This will permanently delete all messages in this chat.
+                            </AlertDialogDescription>
+                            </AlertDialogHeader>
+                            <AlertDialogFooter>
+                            <AlertDialogCancel>Cancel</AlertDialogCancel>
+                            <AlertDialogAction onClick={handleClearChat}>
+                                Yes, clear chat
+                            </AlertDialogAction>
+                            </AlertDialogFooter>
+                        </AlertDialogContent>
+                    </AlertDialog>
+                )}
+            </div>
             <ScrollArea className="flex-1 p-4" ref={scrollAreaRef}>
                 <div className="space-y-4">
+                     {messages.length === 0 && (
+                        <div className="text-center text-sm text-muted-foreground py-10">
+                            No messages yet. Start the conversation!
+                        </div>
+                    )}
                     {messages.map(message => {
                         const sender = getUserById(message.userId as string);
                         const isCurrentUser = message.userId === currentUser.id;

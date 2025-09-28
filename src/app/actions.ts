@@ -603,3 +603,35 @@ export async function leaveProject(projectId: string) {
 
     return { success: false, message: 'Failed to leave the project.' };
 }
+
+export async function clearChat(projectId: string) {
+    const session = await getSession();
+    if (!session?.user) {
+        return { success: false, message: 'Authentication required.' };
+    }
+
+    if (!ObjectId.isValid(projectId)) {
+        return { success: false, message: "Invalid project ID." };
+    }
+
+    const db = await getDb();
+    const projectObjectId = new ObjectId(projectId);
+
+    const project = await db.collection<Project>('projects').findOne({ _id: projectObjectId as any });
+    if (!project) {
+        return { success: false, message: 'Project not found.' };
+    }
+    
+    if (project.ownerId.toString() !== session.user.id) {
+        return { success: false, message: 'Only the project owner can clear the chat.' };
+    }
+
+    const result = await db.collection('messages').deleteMany({ projectId: projectObjectId as any });
+
+    if (result.acknowledged) {
+        revalidatePath(`/dashboard/projects/${projectId}`);
+        return { success: true };
+    }
+
+    return { success: false, message: 'Failed to clear chat.' };
+}
