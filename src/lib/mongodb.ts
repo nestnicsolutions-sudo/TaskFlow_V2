@@ -18,13 +18,24 @@ let cachedDb: Db | null = null;
 
 async function createTtlIndex(db: Db) {
     try {
+        // Ensure the collection exists before trying to create an index.
+        // List collections and check if 'notifications' is in the list.
+        const collections = await db.listCollections({ name: 'notifications' }).toArray();
+        if (collections.length === 0) {
+            // If the collection does not exist, create it.
+            // This can prevent "ns does not exist" errors.
+            await db.createCollection('notifications');
+        }
+
         const notifications = db.collection('notifications');
         const indexExists = await notifications.indexExists('createdAt_1');
         if (!indexExists) {
             await notifications.createIndex({ "createdAt": 1 }, { expireAfterSeconds: 259200 }); // 3 days
         }
     } catch (error) {
-        console.error("Failed to create TTL index for notifications:", error);
+        // Log the error but don't crash the app if index creation fails.
+        // It might fail in a race condition on first startup, but will succeed on subsequent starts.
+        console.error("Failed to create TTL index for notifications, will retry on next connection:", error);
     }
 }
 
@@ -39,8 +50,8 @@ export async function connectToDatabase() {
   cachedClient = client;
   cachedDb = db;
 
-  // Create TTL index for notifications
-  await createTtlIndex(db);
+  // Create TTL index for notifications without blocking the connection process
+  createTtlIndex(db);
 
   return { client, db };
 }
