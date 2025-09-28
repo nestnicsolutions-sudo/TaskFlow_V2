@@ -1,3 +1,4 @@
+
 "use server"
 
 import 'dotenv/config';
@@ -520,18 +521,22 @@ export async function getNotifications(): Promise<Notification[]> {
     }
 
     const db = await getDb();
-    const notifications = await db.collection<Notification>('notifications')
+    const notifications = await db.collection('notifications')
         .find({ userId: new ObjectId(session.user.id), isRead: false })
         .sort({ createdAt: -1 })
         .limit(10)
         .toArray();
 
-    return notifications.map(n => ({
-        ...n,
+    return notifications.map((n: any) => ({
         id: n._id.toString(),
         userId: n.userId.toString(),
         projectId: n.projectId.toString(),
+        projectName: n.projectName,
         senderId: n.senderId.toString(),
+        senderName: n.senderName,
+        message: n.message,
+        isRead: n.isRead,
+        createdAt: n.createdAt,
     }));
 }
 
