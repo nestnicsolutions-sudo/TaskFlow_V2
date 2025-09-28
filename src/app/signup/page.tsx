@@ -1,7 +1,7 @@
 'use client';
 
 import { signup } from '@/lib/auth';
-import { useActionState, useOptimistic } from 'react';
+import { useActionState } from 'react';
 import { useFormStatus } from 'react-dom';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
