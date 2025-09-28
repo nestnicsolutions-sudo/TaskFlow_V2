@@ -6,6 +6,7 @@ import type { Project, User } from "@/lib/data";
 import CreateProjectButton from "@/components/dashboard/create-project-button";
 import JoinProjectDialog from "@/components/dashboard/join-project-dialog";
 import { Button } from "@/components/ui/button";
+import ViewRequestsDialog from "@/components/dashboard/view-requests-dialog";
 
 export default async function DashboardPage() {
   const session = await getSession();
@@ -25,6 +26,7 @@ export default async function DashboardPage() {
       userId: c.userId,
       role: c.role,
     })),
+    joinRequests: p.joinRequests || [],
     createdAt: p.createdAt,
   }));
 
@@ -35,6 +37,9 @@ export default async function DashboardPage() {
     avatarUrl: u.avatarUrl,
     createdAt: u.createdAt,
   }));
+  
+  const projectsOwned = projects.filter(p => p.ownerId === session.user.id);
+  const totalJoinRequests = projectsOwned.reduce((acc, p) => acc + (p.joinRequests?.length || 0), 0);
 
   return (
     <div className="flex flex-col h-full">
@@ -49,6 +54,9 @@ export default async function DashboardPage() {
             </p>
             </div>
             <div className="flex items-center gap-2">
+              {totalJoinRequests > 0 && (
+                <ViewRequestsDialog projects={projectsOwned} users={users} requestCount={totalJoinRequests} />
+              )}
               <JoinProjectDialog />
               <CreateProjectButton userId={session.user.id} />
             </div>
