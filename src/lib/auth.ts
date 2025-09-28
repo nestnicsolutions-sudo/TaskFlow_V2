@@ -9,6 +9,30 @@ import { z } from 'zod';
 import { revalidatePath } from 'next/cache';
 import type { User } from './data';
 import { ObjectId } from 'mongodb';
+import { SignJWT, jwtVerify } from 'jose';
+
+const secretKey = process.env.AUTH_SECRET;
+const key = new TextEncoder().encode(secretKey);
+
+async function encrypt(payload: any) {
+  return await new SignJWT(payload)
+    .setProtectedHeader({ alg: 'HS256' })
+    .setIssuedAt()
+    .setExpirationTime('1d')
+    .sign(key);
+}
+
+async function decrypt(input: string): Promise<any> {
+  try {
+    const { payload } = await jwtVerify(input, key, {
+      algorithms: ['HS256'],
+    });
+    return payload;
+  } catch (e) {
+    return null; // Token is invalid or expired
+  }
+}
+
 
 const LoginSchema = z.object({
   email: z.string().email(),
@@ -48,9 +72,10 @@ export async function login(prevState: { error: string } | undefined, formData: 
     },
     expires: new Date(Date.now() + 24 * 60 * 60 * 1000), // 24 hours
   };
+  
+  const sessionCookie = await encrypt(session);
 
-  // Store the session as a plain JSON string in the cookie
-  cookies().set('session', JSON.stringify(session), {
+  cookies().set('session', sessionCookie, {
     httpOnly: true,
     secure: process.env.NODE_ENV === 'production',
     expires: session.expires,
@@ -101,15 +126,15 @@ export async function logout() {
 export async function getSession() {
   const sessionCookie = (await cookies()).get('session')?.value;
   if (!sessionCookie) return null;
-  try {
-    const session = JSON.parse(sessionCookie);
-    // Check if session is expired
-    if (new Date(session.expires) < new Date()) {
-      return null;
-    }
-    return session;
-  } catch(e) {
-    console.error("Session parsing failed:", e);
+  
+  const session = await decrypt(sessionCookie);
+
+  if (!session) return null;
+  
+  // Check if session is expired
+  if (new Date(session.expires) < new Date()) {
     return null;
   }
+  
+  return session;
 }
