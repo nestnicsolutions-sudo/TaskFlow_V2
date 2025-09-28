@@ -66,6 +66,7 @@ export async function login(prevState: { error: string } | undefined, formData: 
     return { error: 'Invalid email or password.' };
   }
 
+  const expires = new Date(Date.now() + 24 * 60 * 60 * 1000); // 24 hours
   const session = {
     user: {
       id: user._id.toString(),
@@ -73,7 +74,7 @@ export async function login(prevState: { error: string } | undefined, formData: 
       email: user.email,
       avatarUrl: user.avatarUrl,
     },
-    expires: new Date(Date.now() + 24 * 60 * 60 * 1000), // 24 hours
+    expires,
   };
   
   const sessionCookie = await encrypt(session);
@@ -81,7 +82,7 @@ export async function login(prevState: { error: string } | undefined, formData: 
   cookies().set('session', sessionCookie, {
     httpOnly: true,
     secure: process.env.NODE_ENV === 'production',
-    expires: session.expires,
+    expires: expires,
     path: '/',
   });
   
@@ -121,7 +122,7 @@ export async function signup(prevState: { error: string } | undefined, formData:
 
 export async function logout() {
   // Destroy the session
-  cookies().set('session', '', { expires: new Date(0) });
+  cookies().set('session', '', { expires: new Date(0), path: '/' });
   revalidatePath('/');
   redirect('/login');
 }
