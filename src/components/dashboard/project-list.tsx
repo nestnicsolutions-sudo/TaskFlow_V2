@@ -5,7 +5,7 @@ import type { User, Project } from "@/lib/data";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
-import { Users, FolderKanban, Trash2, Archive, ArchiveRestore } from "lucide-react";
+import { Users, FolderKanban, Trash2, Archive, ArchiveRestore, LogOut } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "../ui/badge";
 import {
@@ -19,18 +19,20 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
-import { deleteProject, toggleProjectArchiveStatus } from "@/app/actions";
+import { deleteProject, toggleProjectArchiveStatus, leaveProject } from "@/app/actions";
 import { useToast } from "@/hooks/use-toast";
 
 type Action =
     | { type: 'DELETE_PROJECT'; payload: { projectId: string } }
-    | { type: 'TOGGLE_ARCHIVE'; payload: { projectId: string } };
+    | { type: 'TOGGLE_ARCHIVE'; payload: { projectId: string } }
+    | { type: 'LEAVE_PROJECT'; payload: { projectId: string } };
+
 
 function projectsReducer(state: Project[], action: Action): Project[] {
     switch (action.type) {
         case 'DELETE_PROJECT':
-            return state.filter(p => p.id !== action.payload.projectId);
         case 'TOGGLE_ARCHIVE':
+        case 'LEAVE_PROJECT':
              return state.filter(p => p.id !== action.payload.projectId);
         default:
             return state;
@@ -65,6 +67,16 @@ export default function ProjectList({ initialProjects, users, currentUserId }: {
         }
     };
 
+    const handleLeave = async (projectId: string) => {
+        dispatch({ type: 'LEAVE_PROJECT', payload: { projectId } });
+        const result = await leaveProject(projectId);
+        if (result.success) {
+            toast({ title: "You Left the Project", description: "You have been removed as a collaborator." });
+        } else {
+            toast({ title: "Error", description: result.message, variant: "destructive" });
+        }
+    };
+
     return (
         <div className="space-y-8 mt-8">
             {projects.length > 0 ? (
@@ -77,7 +89,7 @@ export default function ProjectList({ initialProjects, users, currentUserId }: {
                                     <FolderKanban className="h-5 w-5 text-primary"/> 
                                     {project.name}
                                     </CardTitle>
-                                    {project.ownerId === currentUserId && <Badge>Owner</Badge>}
+                                    {project.ownerId === currentUserId ? <Badge>Owner</Badge> : <Badge variant="secondary">Member</Badge>}
                                 </div>
                                 <CardDescription>{project.description}</CardDescription>
                             </CardHeader>
@@ -102,7 +114,7 @@ export default function ProjectList({ initialProjects, users, currentUserId }: {
                                 <Button asChild className="w-full">
                                     <Link href={`/dashboard/projects/${project.id}`}>View Project</Link>
                                 </Button>
-                                {project.ownerId === currentUserId && (
+                                {project.ownerId === currentUserId ? (
                                      <>
                                         <AlertDialog>
                                             <AlertDialogTrigger asChild>
@@ -147,6 +159,28 @@ export default function ProjectList({ initialProjects, users, currentUserId }: {
                                             </AlertDialogContent>
                                         </AlertDialog>
                                     </>
+                                ) : (
+                                    <AlertDialog>
+                                        <AlertDialogTrigger asChild>
+                                             <Button variant="destructive" size="icon" title="Leave Project">
+                                                <LogOut className="h-4 w-4" />
+                                            </Button>
+                                        </AlertDialogTrigger>
+                                        <AlertDialogContent>
+                                            <AlertDialogHeader>
+                                                <AlertDialogTitle>Are you sure you want to leave this project?</AlertDialogTitle>
+                                                <AlertDialogDescription>
+                                                    You will lose access to this project and its tasks unless you are invited back.
+                                                </AlertDialogDescription>
+                                            </AlertDialogHeader>
+                                            <AlertDialogFooter>
+                                                <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                                <AlertDialogAction onClick={() => handleLeave(project.id)}>
+                                                    Leave Project
+                                                </AlertDialogAction>
+                                            </AlertDialogFooter>
+                                        </AlertDialogContent>
+                                    </AlertDialog>
                                 )}
                             </CardFooter>
                         </Card>

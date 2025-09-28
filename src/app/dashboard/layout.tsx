@@ -8,7 +8,7 @@ import { getProjects } from "@/app/actions";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
 import { Menu } from "lucide-react";
-import { getSession } from "@/lib/auth";
+import { getSession, logout } from "@/lib/auth";
 import { redirect } from "next/navigation";
 import type { User } from "@/lib/data";
 
@@ -57,12 +57,12 @@ export default async function DashboardLayout({ children }: { children: ReactNod
             <SidebarFooter>
                 <SidebarMenu>
                      <SidebarMenuItem>
-                        <SidebarMenuButton asChild>
-                            <Link href="/login" className="w-full">
+                        <form action={logout} className="w-full">
+                            <SidebarMenuButton type="submit" className="w-full">
                                 <LogOut />
-                                <span>Login</span>
-                            </Link>
-                        </SidebarMenuButton>
+                                <span>Logout</span>
+                            </SidebarMenuButton>
+                        </form>
                     </SidebarMenuItem>
                 </SidebarMenu>
             </SidebarFooter>

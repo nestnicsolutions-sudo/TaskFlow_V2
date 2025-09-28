@@ -9,7 +9,7 @@ import DeadlineNotifications from "./deadline-notifications";
 import AITaskSuggester from "./ai-task-suggester";
 import JoinRequests from "./join-requests";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Kanban, MessageSquare } from "lucide-react";
+import { Kanban, MessageSquare, PieChart } from "lucide-react";
 import ProjectChat from "./project-chat";
 
 type Action =
@@ -102,14 +102,21 @@ export default function ProjectView({ initialProject, initialTasks, initialMessa
                         <TabsTrigger value="board">
                             <Kanban className="mr-2 h-4 w-4" /> Board
                         </TabsTrigger>
+                         <TabsTrigger value="overview">
+                            <PieChart className="mr-2 h-4 w-4" /> Overview
+                        </TabsTrigger>
                         <TabsTrigger value="chat">
                              <MessageSquare className="mr-2 h-4 w-4" /> Chat
                         </TabsTrigger>
                     </TabsList>
-                    <ProgressOverview tasks={tasks} />
                 </div>
                 <TabsContent value="board" className="flex-1 min-h-0">
                     <KanbanBoard tasks={tasks} dispatch={dispatch as Dispatch<any>} users={users} userRole={userRole} project={project} />
+                </TabsContent>
+                 <TabsContent value="overview" className="flex-1 min-h-0">
+                    <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-2">
+                         <ProgressOverview tasks={tasks} />
+                    </div>
                 </TabsContent>
                 <TabsContent value="chat" className="flex-1 min-h-0">
                     <ProjectChat 

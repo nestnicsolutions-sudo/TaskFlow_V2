@@ -485,3 +485,41 @@ export async function createMessage(projectId: string, text: string): Promise<Me
         createdAt: newMessageDoc.createdAt,
     };
 }
+
+
+export async function leaveProject(projectId: string) {
+    const session = await getSession();
+    if (!session?.user) {
+        return { success: false, message: 'Authentication required.' };
+    }
+
+    if (!ObjectId.isValid(projectId)) {
+        return { success: false, message: "Invalid project ID." };
+    }
+
+    const db = await getDb();
+    const projectObjectId = new ObjectId(projectId);
+    const userObjectId = new ObjectId(session.user.id);
+
+    const project = await db.collection<Project>('projects').findOne({ _id: projectObjectId as any });
+    if (!project) {
+        return { success: false, message: 'Project not found.' };
+    }
+
+    if (project.ownerId.toString() === session.user.id) {
+        return { success: false, message: 'Project owners cannot leave a project. You can delete it instead.' };
+    }
+
+    const result = await db.collection<Project>('projects').updateOne(
+        { _id: projectObjectId as any },
+        { $pull: { collaborators: { userId: userObjectId } } as any }
+    );
+
+    if (result.modifiedCount > 0) {
+        revalidatePath('/dashboard');
+        revalidatePath(`/dashboard/projects/${projectId}`);
+        return { success: true };
+    }
+
+    return { success: false, message: 'Failed to leave the project.' };
+}
