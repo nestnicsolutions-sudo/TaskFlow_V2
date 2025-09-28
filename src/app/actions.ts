@@ -152,11 +152,15 @@ export async function createTask(formData: FormData) {
     if (!newTaskDoc) return null;
     
     // Return a plain object, converting ObjectIds to strings
-    const newTask = {
-        ...newTaskDoc,
+    const newTask: Task = {
         id: newTaskDoc._id.toString(),
+        _id: newTaskDoc._id,
         projectId: newTaskDoc.projectId.toString(),
-        assigneeId: newTaskDoc.assigneeId?.toString()
+        title: newTaskDoc.title,
+        status: newTaskDoc.status,
+        assigneeId: newTaskDoc.assigneeId?.toString(),
+        dueDate: newTaskDoc.dueDate,
+        createdAt: newTaskDoc.createdAt,
     };
     
     return newTask;
@@ -178,11 +182,15 @@ export async function updateTaskStatus(taskId: string, newStatus: TaskStatus, pr
 
         if (!updatedTaskDoc) return null;
 
-        const updatedTask = {
-            ...updatedTaskDoc,
+        const updatedTask: Task = {
             id: updatedTaskDoc._id.toString(),
+            _id: updatedTaskDoc._id,
             projectId: updatedTaskDoc.projectId.toString(),
+            title: updatedTaskDoc.title,
+            status: updatedTaskDoc.status,
             assigneeId: updatedTaskDoc.assigneeId?.toString(),
+            dueDate: updatedTaskDoc.dueDate,
+            createdAt: updatedTaskDoc.createdAt,
         };
         return updatedTask;
     }
