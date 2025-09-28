@@ -13,7 +13,7 @@ export default function ProjectList({ initialProjects, users }: { initialProject
     return (
         <div className="space-y-8 mt-8">
             {initialProjects.length > 0 ? (
-                <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                     {initialProjects.map((project) => (
                         <Card key={project.id} className="flex flex-col">
                             <CardHeader>
