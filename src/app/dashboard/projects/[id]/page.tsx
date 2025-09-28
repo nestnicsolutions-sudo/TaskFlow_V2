@@ -6,11 +6,10 @@ import { getSession } from "@/lib/auth";
 
 type ProjectPageProps = {
     params: { id: string };
-    searchParams: { [key: string]: string | string[] | undefined };
 };
 
 
-export default async function ProjectPage({ params }: { params: { id: string } }) {
+export default async function ProjectPage({ params }: ProjectPageProps) {
     const { id } = params;
     const session = await getSession();
     if (!session?.user) {

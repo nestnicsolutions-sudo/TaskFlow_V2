@@ -1,4 +1,3 @@
-import { SidebarTrigger } from "@/components/ui/sidebar";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import {
@@ -11,17 +10,18 @@ import {
     DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { ThemeToggle } from "../theme-toggle";
-import { Bell, LogOut } from "lucide-react";
+import { LogOut } from "lucide-react";
 import { logout } from "@/lib/auth";
+import NotificationPopover from "./notification-popover";
+import { getNotifications } from "@/app/actions";
 
-export default function Header({ user }: { user: { name?: string | null, email?: string | null, id: string, avatarUrl?: string | null }}) {
+export default async function Header({ user }: { user: { name?: string | null, email?: string | null, id: string, avatarUrl?: string | null }}) {
+    const notifications = await getNotifications();
+    
     return (
         <div className="flex w-full items-center gap-4 md:gap-2 lg:gap-4">
             <div className="flex-1" />
-            <Button variant="ghost" size="icon">
-                <Bell className="h-5 w-5" />
-                <span className="sr-only">Toggle notifications</span>
-            </Button>
+            <NotificationPopover notifications={notifications} />
             <ThemeToggle />
             <DropdownMenu>
                 <DropdownMenuTrigger asChild>

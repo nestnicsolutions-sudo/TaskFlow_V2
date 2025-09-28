@@ -5,6 +5,7 @@ export type Role = 'admin' | 'editor' | 'viewer';
 
 export type Task = {
     id: string;
+    _id?: ObjectId;
     projectId: string | ObjectId;
     title: string;
     status: TaskStatus;
@@ -43,5 +44,17 @@ export type Message = {
     projectId: string | ObjectId;
     userId: string | ObjectId;
     text: string;
+    createdAt: Date;
+};
+
+export type Notification = {
+    id: string;
+    userId: string | ObjectId; // The user who should receive the notification
+    projectId: string | ObjectId;
+    projectName: string;
+    senderId: string | ObjectId;
+    senderName: string;
+    message: string;
+    isRead: boolean;
     createdAt: Date;
 };

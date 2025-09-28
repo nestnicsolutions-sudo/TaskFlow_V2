@@ -3,7 +3,7 @@
 import 'dotenv/config';
 import { revalidatePath } from "next/cache";
 import { suggestSubtasks as suggestSubtasksFlow } from "@/ai/ai-suggest-subtasks";
-import { Project, Task, TaskStatus, User, Role, Message, Collaborator } from "@/lib/data";
+import { Project, Task, TaskStatus, User, Role, Message, Collaborator, Notification } from "@/lib/data";
 import { connectToDatabase } from "@/lib/mongodb";
 import { ObjectId } from "mongodb";
 import { getSession } from '@/lib/auth';
@@ -171,7 +171,7 @@ export async function createTask(formData: FormData): Promise<Task | null> {
     if (!newTaskDoc) return null;
     
     const newTask: Task = {
-        id: newTaskDoc._id!.toString(),
+        id: newTaskDoc._id.toString(),
         projectId: newTaskDoc.projectId.toString(),
         title: newTaskDoc.title,
         status: newTaskDoc.status,
@@ -200,7 +200,7 @@ export async function updateTaskStatus(taskId: string, newStatus: TaskStatus, pr
         if (!updatedTaskDoc) return null;
 
         const updatedTask: Task = {
-            id: updatedTaskDoc._id!.toString(),
+            id: updatedTaskDoc._id.toString(),
             projectId: updatedTaskDoc.projectId.toString(),
             title: updatedTaskDoc.title,
             status: updatedTaskDoc.status,
@@ -456,6 +456,7 @@ export async function createMessage(projectId: string, text: string): Promise<Me
         throw new Error("Authentication required.");
     }
     const userId = session.user.id;
+    const userName = session.user.name;
 
     if (!ObjectId.isValid(projectId) || !ObjectId.isValid(userId)) {
         throw new Error("Invalid project or user ID");
@@ -466,12 +467,38 @@ export async function createMessage(projectId: string, text: string): Promise<Me
     }
 
     const db = await getDb();
+    
+    const project = await db.collection<Project>('projects').findOne({ _id: new ObjectId(projectId) as any });
+    if (!project) {
+        throw new Error("Project not found.");
+    }
+
     const result = await db.collection<Omit<Message, 'id' | '_id'>>('messages').insertOne({
         projectId: new ObjectId(projectId),
         userId: new ObjectId(userId),
         text,
         createdAt: new Date(),
     });
+    
+    // Create notifications for all other project members
+    const allMemberIds = [project.ownerId.toString(), ...project.collaborators.map(c => c.userId.toString())];
+    const recipients = allMemberIds.filter(id => id !== userId);
+
+    if (recipients.length > 0) {
+        const notifications = recipients.map(recipientId => ({
+            userId: new ObjectId(recipientId),
+            projectId: new ObjectId(projectId),
+            projectName: project.name,
+            senderId: new ObjectId(userId),
+            senderName: userName,
+            message: text,
+            isRead: false,
+            createdAt: new Date(),
+        }));
+        await db.collection('notifications').insertMany(notifications);
+    }
+    
+    revalidatePath(`/dashboard`); // For notifications popover in header
 
     const newMessageDoc = await db.collection<Message>('messages').findOne({ _id: result.insertedId });
 
@@ -484,6 +511,50 @@ export async function createMessage(projectId: string, text: string): Promise<Me
         text: newMessageDoc.text,
         createdAt: newMessageDoc.createdAt,
     };
+}
+
+export async function getNotifications(): Promise<Notification[]> {
+    const session = await getSession();
+    if (!session?.user) {
+        return [];
+    }
+
+    const db = await getDb();
+    const notifications = await db.collection<Notification>('notifications')
+        .find({ userId: new ObjectId(session.user.id), isRead: false })
+        .sort({ createdAt: -1 })
+        .limit(10)
+        .toArray();
+
+    return notifications.map(n => ({
+        ...n,
+        id: n._id.toString(),
+        userId: n.userId.toString(),
+        projectId: n.projectId.toString(),
+        senderId: n.senderId.toString(),
+    }));
+}
+
+export async function markNotificationsAsRead(notificationIds: string[]) {
+    const session = await getSession();
+    if (!session?.user) {
+        return { success: false, message: 'Authentication required.' };
+    }
+
+    if (!notificationIds || notificationIds.length === 0) {
+        return { success: true };
+    }
+
+    const validObjectIds = notificationIds.filter(id => ObjectId.isValid(id)).map(id => new ObjectId(id));
+    
+    const db = await getDb();
+    await db.collection<Notification>('notifications').updateMany(
+        { _id: { $in: validObjectIds } as any, userId: new ObjectId(session.user.id) },
+        { $set: { isRead: true } }
+    );
+    
+    revalidatePath('/dashboard');
+    return { success: true };
 }
 
 

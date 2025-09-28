@@ -16,6 +16,18 @@ if (!DB_NAME) {
 let cachedClient: MongoClient | null = null;
 let cachedDb: Db | null = null;
 
+async function createTtlIndex(db: Db) {
+    try {
+        const notifications = db.collection('notifications');
+        const indexExists = await notifications.indexExists('createdAt_1');
+        if (!indexExists) {
+            await notifications.createIndex({ "createdAt": 1 }, { expireAfterSeconds: 259200 }); // 3 days
+        }
+    } catch (error) {
+        console.error("Failed to create TTL index for notifications:", error);
+    }
+}
+
 export async function connectToDatabase() {
   if (cachedClient && cachedDb) {
     return { client: cachedClient, db: cachedDb };
@@ -26,6 +38,9 @@ export async function connectToDatabase() {
 
   cachedClient = client;
   cachedDb = db;
+
+  // Create TTL index for notifications
+  await createTtlIndex(db);
 
   return { client, db };
 }

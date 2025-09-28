@@ -1,7 +1,7 @@
 "use client";
 
 import type { Project, Task, TaskStatus, User, Message } from "@/lib/data";
-import { useReducer, useMemo, useState, Dispatch } from "react";
+import { useReducer, useMemo, useState, Dispatch, useEffect } from "react";
 import ProjectHeader from "./project-header";
 import KanbanBoard from "./kanban";
 import ProgressOverview from "./progress-overview";
@@ -11,6 +11,7 @@ import JoinRequests from "./join-requests";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Kanban, MessageSquare, PieChart } from "lucide-react";
 import ProjectChat from "./project-chat";
+import { useSearchParams, useRouter, usePathname } from 'next/navigation'
 
 type Action =
     | { type: 'UPDATE_TASK_STATUS'; payload: { taskId: string; newStatus: TaskStatus } }
@@ -71,7 +72,25 @@ export default function ProjectView({ initialProject, initialTasks, initialMessa
     
     const [state, dispatch] = useReducer(mainReducer, { project: initialProject, tasks: initialTasks });
     const { project, tasks } = state;
+    const searchParams = useSearchParams();
+    const router = useRouter();
+    const pathname = usePathname();
+    const [activeTab, setActiveTab] = useState(searchParams.get('tab') || 'board');
     
+    useEffect(() => {
+        const tab = searchParams.get('tab');
+        if (tab) {
+            setActiveTab(tab);
+        }
+    }, [searchParams]);
+
+    const handleTabChange = (value: string) => {
+        setActiveTab(value);
+        const params = new URLSearchParams(searchParams.toString());
+        params.set('tab', value);
+        router.replace(`${pathname}?${params.toString()}`, { scroll: false });
+    };
+
     const userRole = useMemo(() => {
         if (project.ownerId === currentUser.id) return 'admin';
         const collaborator = project.collaborators.find((c:any) => c.userId === currentUser.id);
@@ -96,7 +115,7 @@ export default function ProjectView({ initialProject, initialTasks, initialMessa
                 <JoinRequests project={project} users={users} dispatch={dispatch as Dispatch<any>} />
             )}
 
-            <Tabs defaultValue="board" className="flex flex-col gap-4 min-h-0 flex-1">
+            <Tabs value={activeTab} onValueChange={handleTabChange} className="flex flex-col gap-4 min-h-0 flex-1">
                 <div className="flex items-center justify-between">
                     <TabsList>
                         <TabsTrigger value="board">
