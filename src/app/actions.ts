@@ -3,7 +3,7 @@
 import 'dotenv/config';
 import { revalidatePath } from "next/cache";
 import { suggestSubtasks as suggestSubtasksFlow } from "@/ai/ai-suggest-subtasks";
-import { Project, Task, TaskStatus, User, Role, Message } from "@/lib/data";
+import { Project, Task, TaskStatus, User, Role, Message, Collaborator } from "@/lib/data";
 import { connectToDatabase } from "@/lib/mongodb";
 import { ObjectId } from "mongodb";
 import { getSession } from '@/lib/auth';
@@ -37,6 +37,7 @@ export async function getProjects(userId: string): Promise<Project[]> {
         })),
         joinRequests: p.joinRequests?.map((r: any) => r.toString()) || [],
         createdAt: p.createdAt,
+        isArchived: p.isArchived,
     }));
 }
 
@@ -61,6 +62,7 @@ export async function getProjectById(id: string): Promise<Project | null> {
         })),
         joinRequests: projectDoc.joinRequests?.map((r: any) => r.toString()) || [],
         createdAt: projectDoc.createdAt,
+        isArchived: projectDoc.isArchived,
     };
 
     return project;
@@ -75,11 +77,11 @@ export async function getTasksByProjectId(projectId: string): Promise<Task[]> {
     return tasks.map(t => ({
         id: t._id!.toString(),
         projectId: t.projectId.toString(),
+        title: t.title,
+        status: t.status,
         assigneeId: t.assigneeId?.toString(),
         dueDate: t.dueDate,
         createdAt: t.createdAt,
-        title: t.title,
-        status: t.status,
     }));
 }
 
@@ -98,9 +100,7 @@ export async function getUsers(): Promise<User[]> {
 
 export async function createProject(prevState: any, formData: FormData) {
   try {
-    console.log('[createProject] Action started.');
     const session = await getSession();
-    console.log('[createProject] Session object:', session);
 
     if (!session?.user) {
       throw new Error("Authentication required.");
@@ -109,8 +109,6 @@ export async function createProject(prevState: any, formData: FormData) {
     const ownerId = session.user.id;
     const name = formData.get("name") as string;
     const description = formData.get("description") as string;
-    
-    console.log(`[createProject] Name: ${name}, Description: ${description}, OwnerID: ${ownerId}`);
 
     if (!name || !description) {
         throw new Error("Project name and description are required.");
@@ -121,7 +119,6 @@ export async function createProject(prevState: any, formData: FormData) {
     }
 
     const { db } = await connectToDatabase();
-    console.log('[createProject] Database connected. Inserting document...');
     const result = await db.collection<Omit<Project, 'id' | '_id'>>("projects").insertOne({
       name,
       description,
@@ -129,8 +126,8 @@ export async function createProject(prevState: any, formData: FormData) {
       collaborators: [],
       joinRequests: [],
       createdAt: new Date(),
+      isArchived: false,
     });
-    console.log('[createProject] Document inserted with ID:', result.insertedId);
 
     const newProject = await db
       .collection<Project>("projects")
@@ -140,10 +137,7 @@ export async function createProject(prevState: any, formData: FormData) {
     if (newProject) {
         revalidatePath(`/dashboard/projects/${newProject._id!.toString()}`);
     }
-    console.log('[createProject] Action finished successfully.');
   } catch (error) {
-    console.error('[createProject] CRITICAL ERROR:', error);
-    // This will be caught by useActionState and displayed to the user
     if (error instanceof Error) {
         throw new Error(error.message);
     }
@@ -151,7 +145,7 @@ export async function createProject(prevState: any, formData: FormData) {
   }
 }
 
-export async function createTask(formData: FormData) {
+export async function createTask(formData: FormData): Promise<Task | null> {
     const projectId = formData.get('projectId') as string;
     const title = formData.get('title') as string;
     const assigneeId = formData.get('assigneeId') as string;
@@ -183,13 +177,13 @@ export async function createTask(formData: FormData) {
         status: newTaskDoc.status,
         assigneeId: newTaskDoc.assigneeId?.toString(),
         dueDate: newTaskDoc.dueDate,
-createdAt: newTaskDoc.createdAt,
+        createdAt: newTaskDoc.createdAt,
     };
     
     return newTask;
 }
 
-export async function updateTaskStatus(taskId: string, newStatus: TaskStatus, projectId: string) {
+export async function updateTaskStatus(taskId: string, newStatus: TaskStatus, projectId: string): Promise<Task | null> {
     if (!ObjectId.isValid(taskId) || !ObjectId.isValid(projectId)) {
         return null;
     }
@@ -265,6 +259,40 @@ export async function deleteProject(projectId: string) {
     revalidatePath('/dashboard');
     
     return { success: true };
+}
+
+export async function toggleProjectArchiveStatus(projectId: string, isArchived: boolean) {
+    const session = await getSession();
+    if (!session?.user) {
+        return { success: false, message: 'Authentication required.' };
+    }
+
+    if (!ObjectId.isValid(projectId)) {
+        return { success: false, message: "Invalid project ID." };
+    }
+    const db = await getDb();
+    const projectObjectId = new ObjectId(projectId);
+
+    const project = await db.collection<Project>('projects').findOne({ _id: projectObjectId as any });
+
+    if (!project) {
+        return { success: false, message: 'Project not found.' };
+    }
+    if (project.ownerId.toString() !== session.user.id) {
+        return { success: false, message: 'Only the project owner can archive or unarchive this project.' };
+    }
+
+    const result = await db.collection<Project>('projects').updateOne(
+        { _id: projectObjectId as any },
+        { $set: { isArchived } }
+    );
+
+    if (result.modifiedCount > 0) {
+        revalidatePath('/dashboard');
+        return { success: true };
+    }
+
+    return { success: false, message: 'Failed to update project status.' };
 }
 
 

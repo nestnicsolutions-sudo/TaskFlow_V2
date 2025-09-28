@@ -6,6 +6,8 @@ import JoinProjectDialog from "@/components/dashboard/join-project-dialog";
 import ViewRequestsDialog from "@/components/dashboard/view-requests-dialog";
 import { getSession } from "@/lib/auth";
 import { redirect } from "next/navigation";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Archive, FolderKanban } from "lucide-react";
 
 export default async function DashboardPage() {
   const session = await getSession();
@@ -17,7 +19,6 @@ export default async function DashboardPage() {
   const projectsData = await getProjects(currentUser.id);
   const usersData = await getUsers();
   
-  // Manually construct plain objects to pass to client components
   const projects: Project[] = projectsData.map((p: any) => ({
     id: p.id,
     name: p.name,
@@ -29,6 +30,7 @@ export default async function DashboardPage() {
     })),
     joinRequests: p.joinRequests || [],
     createdAt: p.createdAt,
+    isArchived: p.isArchived,
   }));
 
   const users: User[] = usersData.map((u: any) => ({
@@ -41,6 +43,9 @@ export default async function DashboardPage() {
   
   const projectsOwned = projects.filter(p => p.ownerId === currentUser.id);
   const totalJoinRequests = projectsOwned.reduce((acc, p) => acc + (p.joinRequests?.length || 0), 0);
+
+  const activeProjects = projects.filter(p => !p.isArchived);
+  const archivedProjects = projects.filter(p => p.isArchived);
 
   return (
     <div className="flex flex-col h-full">
@@ -64,7 +69,18 @@ export default async function DashboardPage() {
         </div>
       </div>
       <div className="flex-1 overflow-y-auto -mx-4 px-4">
-        <ProjectList initialProjects={projects} users={users} currentUserId={currentUser.id} />
+        <Tabs defaultValue="active" className="mt-4">
+          <TabsList>
+            <TabsTrigger value="active"><FolderKanban className="mr-2 h-4 w-4" /> Active ({activeProjects.length})</TabsTrigger>
+            <TabsTrigger value="archived"><Archive className="mr-2 h-4 w-4" /> Archived ({archivedProjects.length})</TabsTrigger>
+          </TabsList>
+          <TabsContent value="active">
+            <ProjectList initialProjects={activeProjects} users={users} currentUserId={currentUser.id} />
+          </TabsContent>
+          <TabsContent value="archived">
+            <ProjectList initialProjects={archivedProjects} users={users} currentUserId={currentUser.id} />
+          </TabsContent>
+        </Tabs>
       </div>
     </div>
   );

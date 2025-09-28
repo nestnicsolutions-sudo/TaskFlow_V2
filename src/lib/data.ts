@@ -5,7 +5,6 @@ export type Role = 'admin' | 'editor' | 'viewer';
 
 export type Task = {
     id: string;
-    _id?: ObjectId;
     projectId: string | ObjectId;
     title: string;
     status: TaskStatus;
@@ -21,18 +20,17 @@ export type Collaborator = {
 
 export type Project = {
     id: string;
-    _id?: ObjectId;
     name: string;
     description: string;
     ownerId: string | ObjectId;
     collaborators: Collaborator[];
     joinRequests: (string | ObjectId)[];
     createdAt: Date;
+    isArchived?: boolean;
 };
 
 export type User = {
     id: string;
-    _id?: ObjectId;
     name: string;
     email: string;
     password?: string;
@@ -42,7 +40,6 @@ export type User = {
 
 export type Message = {
     id: string;
-    _id?: ObjectId;
     projectId: string | ObjectId;
     userId: string | ObjectId;
     text: string;
