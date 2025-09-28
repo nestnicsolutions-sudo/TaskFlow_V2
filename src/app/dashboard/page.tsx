@@ -1,13 +1,11 @@
 import { getProjects, getUsers } from "@/app/actions";
 import ProjectList from "@/components/dashboard/project-list";
 import type { Project, User } from "@/lib/data";
-import CreateProjectButton from "@/components/dashboard/create-project-button";
-import JoinProjectDialog from "@/components/dashboard/join-project-dialog";
-import ViewRequestsDialog from "@/components/dashboard/view-requests-dialog";
 import { getSession } from "@/lib/auth";
 import { redirect } from "next/navigation";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Archive, FolderKanban } from "lucide-react";
+import ProjectActions from "@/components/dashboard/project-actions";
 
 export default async function DashboardPage() {
   const session = await getSession();
@@ -59,13 +57,11 @@ export default async function DashboardPage() {
                 Your central hub for all ongoing and completed projects.
             </p>
             </div>
-            <div className="flex items-center gap-2">
-              {totalJoinRequests > 0 && (
-                <ViewRequestsDialog projects={projectsOwned} users={users} requestCount={totalJoinRequests} />
-              )}
-              <JoinProjectDialog />
-              <CreateProjectButton />
-            </div>
+            <ProjectActions
+              projectsOwned={projectsOwned}
+              users={users}
+              totalJoinRequests={totalJoinRequests}
+            />
         </div>
       </div>
       <div className="flex-1 overflow-y-auto -mx-4 px-4">
