@@ -12,6 +12,9 @@ import { ObjectId } from 'mongodb';
 import { SignJWT, jwtVerify } from 'jose';
 
 const secretKey = process.env.AUTH_SECRET;
+if (!secretKey) {
+  throw new Error('AUTH_SECRET environment variable is not set. Please add it to your .env file.');
+}
 const key = new TextEncoder().encode(secretKey);
 
 async function encrypt(payload: any) {
