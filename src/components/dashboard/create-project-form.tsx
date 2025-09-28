@@ -11,19 +11,55 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { createProject } from "@/app/actions";
+import { useActionState, useEffect } from "react";
+import { useToast } from "@/hooks/use-toast";
+
+type FormState = {
+  success: boolean;
+  message: string | null;
+}
+
+const initialState: FormState = {
+  success: false,
+  message: null,
+};
 
 export default function CreateProjectForm({ children, open, onOpenChange }: { children: React.ReactNode, open: boolean, onOpenChange: (open: boolean) => void }) {
+  const { toast } = useToast();
   
-  const handleSubmit = async (formData: FormData) => {
-    await createProject(formData);
-    onOpenChange(false);
-  }
+  // The `createProject` action does not return a value, so we'll wrap it to provide state.
+  const createProjectAction = async (prevState: FormState, formData: FormData): Promise<FormState> => {
+    try {
+      await createProject(formData);
+      return { success: true, message: "Project created successfully!" };
+    } catch (e: unknown) {
+      return { success: false, message: e instanceof Error ? e.message : "An unknown error occurred." };
+    }
+  };
+
+  const [state, formAction] = useActionState(createProjectAction, initialState);
+
+  useEffect(() => {
+    if (state.success) {
+      onOpenChange(false);
+      toast({
+        title: "Success",
+        description: state.message,
+      });
+    } else if (state.message) {
+      toast({
+        title: "Error",
+        description: state.message,
+        variant: "destructive",
+      });
+    }
+  }, [state, onOpenChange, toast]);
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       {children}
       <DialogContent className="sm:max-w-[425px]">
-        <form action={handleSubmit}>
+        <form action={formAction}>
           <DialogHeader>
             <DialogTitle>Create New Project</DialogTitle>
             <DialogDescription>

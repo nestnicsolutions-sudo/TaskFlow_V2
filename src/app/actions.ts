@@ -94,7 +94,7 @@ export async function getUsers(): Promise<User[]> {
         name: u.name,
         email: u.email,
         avatarUrl: u.avatarUrl,
-        createdAt: u.createdAt
+        createdAt: u.createdAt,
     })) as User[];
 }
 
