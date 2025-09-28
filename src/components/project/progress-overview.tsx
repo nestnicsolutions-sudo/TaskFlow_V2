@@ -52,54 +52,56 @@ export default function ProgressOverview({ tasks }: { tasks: Task[] }) {
 
 
     return (
-        <Card className="flex flex-col h-full">
-          <CardHeader>
+        <Card>
+          <CardHeader className="pb-2">
             <CardTitle>Progress Overview</CardTitle>
             <CardDescription>{completionPercentage}% of all tasks completed.</CardDescription>
           </CardHeader>
-          <CardContent className="flex-1 flex items-center gap-4">
-             <div className="w-1/3">
-                <ChartContainer
-                config={chartConfig}
-                className="mx-auto aspect-square h-full"
-                >
-                <ResponsiveContainer width="100%" height="100%">
-                    <PieChart>
-                        <Tooltip
-                        cursor={false}
-                        content={<ChartTooltipContent hideLabel nameKey="name" />}
-                        />
-                        <Pie
-                        data={chartData}
-                        dataKey="value"
-                        nameKey="name"
-                        innerRadius={30}
-                        strokeWidth={2}
-                        >
-                        {chartData.map((entry) => (
-                            <Cell key={`cell-${entry.name}`} fill={entry.fill} />
-                        ))}
-                        </Pie>
-                    </PieChart>
-                </ResponsiveContainer>
-                </ChartContainer>
-            </div>
-            <div className="flex-1 grid grid-cols-2 lg:grid-cols-4 gap-4">
-                {Object.entries(statusCounts).map(([status, count]) => {
-                    const config = chartConfig[status as keyof typeof chartConfig];
-                    return (
-                        <div key={status} className="flex items-center gap-2">
-                             <span
-                                className="h-3 w-3 rounded-full"
-                                style={{ backgroundColor: config.color }}
+          <CardContent className="pb-4">
+            <div className="flex items-center gap-4 text-sm">
+                <div className="h-24 w-24 flex-shrink-0">
+                    <ChartContainer
+                    config={chartConfig}
+                    className="aspect-square h-full"
+                    >
+                    <ResponsiveContainer width="100%" height="100%">
+                        <PieChart>
+                            <Tooltip
+                            cursor={false}
+                            content={<ChartTooltipContent hideLabel nameKey="name" />}
                             />
-                            <div>
-                                <p className="text-sm text-muted-foreground">{config.label}</p>
-                                <p className="text-lg font-bold">{count}</p>
+                            <Pie
+                            data={chartData}
+                            dataKey="value"
+                            nameKey="name"
+                            innerRadius={25}
+                            strokeWidth={2}
+                            >
+                            {chartData.map((entry) => (
+                                <Cell key={`cell-${entry.name}`} fill={entry.fill} />
+                            ))}
+                            </Pie>
+                        </PieChart>
+                    </ResponsiveContainer>
+                    </ChartContainer>
+                </div>
+                <div className="flex-1 flex justify-around">
+                    {Object.entries(statusCounts).map(([status, count]) => {
+                        const config = chartConfig[status as keyof typeof chartConfig];
+                        return (
+                            <div key={status} className="flex flex-col items-center gap-1">
+                                <div className="flex items-center gap-2">
+                                    <span
+                                        className="h-2.5 w-2.5 rounded-full"
+                                        style={{ backgroundColor: config.color }}
+                                    />
+                                    <p className="text-xs text-muted-foreground">{config.label}</p>
+                                </div>
+                                <p className="text-xl font-bold">{count}</p>
                             </div>
-                        </div>
-                    );
-                })}
+                        );
+                    })}
+                </div>
             </div>
           </CardContent>
         </Card>
