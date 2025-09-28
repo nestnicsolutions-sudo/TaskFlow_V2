@@ -79,7 +79,7 @@ export async function login(prevState: { error: string } | undefined, formData: 
   
   const sessionCookie = await encrypt(session);
 
-  cookies().set('session', sessionCookie, {
+  (await cookies()).set('session', sessionCookie, {
     httpOnly: true,
     secure: process.env.NODE_ENV === 'production',
     expires: expires,
@@ -122,7 +122,9 @@ export async function signup(prevState: { error: string } | undefined, formData:
 
 export async function logout() {
   // Destroy the session
-  cookies().set('session', '', { expires: new Date(0), path: '/' });
+  (await
+    // Destroy the session
+    cookies()).set('session', '', { expires: new Date(0), path: '/' });
   revalidatePath('/');
   redirect('/login');
 }

@@ -238,6 +238,42 @@ export async function deleteTask(taskId: string, projectId: string) {
     return { success: false, message: "Failed to delete task." };
 }
 
+export async function deleteProject(projectId: string) {
+    const session = await getSession();
+    if (!session?.user) {
+        return { success: false, message: 'Authentication required.' };
+    }
+
+    if (!ObjectId.isValid(projectId)) {
+        return { success: false, message: "Invalid project ID." };
+    }
+
+    const db = await getDb();
+    const projectObjectId = new ObjectId(projectId);
+    const userObjectId = new ObjectId(session.user.id);
+
+    const project = await db.collection('projects').findOne({ _id: projectObjectId });
+
+    if (!project) {
+        return { success: false, message: 'Project not found.' };
+    }
+
+    if (project.ownerId.toString() !== session.user.id) {
+        return { success: false, message: 'Only the project owner can delete this project.' };
+    }
+
+    // Delete the project
+    await db.collection('projects').deleteOne({ _id: projectObjectId });
+
+    // Delete all tasks associated with the project
+    await db.collection('tasks').deleteMany({ projectId: projectObjectId });
+
+    revalidatePath('/dashboard');
+    
+    return { success: true };
+}
+
+
 export async function inviteCollaborator(projectId: string, userId: string, role: 'editor' | 'viewer') {
     if (!ObjectId.isValid(projectId) || !ObjectId.isValid(userId)) {
         return { success: false, message: "Invalid project or user ID." };
@@ -374,5 +410,3 @@ export async function denyJoinRequest(projectId: string, userId: string) {
 
     return { success: false, message: 'Failed to deny join request.' };
 }
-
-  
