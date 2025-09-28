@@ -45,6 +45,7 @@ export default async function DashboardPage() {
             Your central hub for all ongoing and completed projects.
           </p>
         </div>
+        <CreateProjectButton userId={session.user.id} />
       </div>
       <ProjectList initialProjects={projects} users={users} />
     </div>
