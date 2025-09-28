@@ -43,7 +43,7 @@ export default function ProgressOverview({ tasks }: { tasks: Task[] }) {
     const completionPercentage = totalTasks > 0 ? Math.round((completedTasks / totalTasks) * 100) : 0;
 
     return (
-        <Card className="flex flex-col h-full">
+        <Card className="flex flex-col h-full col-span-1 lg:col-span-1">
           <CardHeader>
             <CardTitle>Task Distribution</CardTitle>
             <CardDescription>{completionPercentage}% of all tasks completed.</CardDescription>

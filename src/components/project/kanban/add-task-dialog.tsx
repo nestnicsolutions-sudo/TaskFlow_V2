@@ -1,4 +1,4 @@
-import { ReactNode, useState } from "react";
+import { ReactNode, useState, useMemo } from "react";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -32,6 +32,11 @@ export default function AddTaskDialog({ children, project, users, dispatch }: Ad
     const [open, setOpen] = useState(false);
     const [date, setDate] = useState<Date>();
     const { toast } = useToast();
+
+    const projectMembers = useMemo(() => {
+        const memberIds = new Set([project.ownerId.toString(), ...project.collaborators.map(c => c.userId.toString())]);
+        return users.filter(user => memberIds.has(user.id));
+    }, [project, users]);
 
     const handleSubmit = async (formData: FormData) => {
         formData.append('projectId', project.id);
@@ -81,7 +86,7 @@ export default function AddTaskDialog({ children, project, users, dispatch }: Ad
                                     <SelectValue placeholder="Select an assignee" />
                                 </SelectTrigger>
                                 <SelectContent>
-                                    {users.map(user => (
+                                    {projectMembers.map(user => (
                                         <SelectItem key={user.id} value={user.id}>{user.name}</SelectItem>
                                     ))}
                                 </SelectContent>
