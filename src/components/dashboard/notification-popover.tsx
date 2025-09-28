@@ -18,22 +18,32 @@ import { ScrollArea } from "../ui/scroll-area";
 export default function NotificationPopover({ notifications: initialNotifications }: { notifications: Notification[] }) {
   const [open, setOpen] = useState(false);
   const [notifications, setNotifications] = useState(initialNotifications);
+  const [displayedNotifications, setDisplayedNotifications] = useState(initialNotifications);
   const { toast } = useToast();
 
   useEffect(() => {
     setNotifications(initialNotifications);
-  }, [initialNotifications]);
+    if (!open) {
+      setDisplayedNotifications(initialNotifications);
+    }
+  }, [initialNotifications, open]);
 
   const handleOpenChange = async (isOpen: boolean) => {
     setOpen(isOpen);
-    if (!isOpen && notifications.length > 0) {
-      // When popover closes, mark all as read
+    if (isOpen && notifications.length > 0) {
       const notificationIds = notifications.map(n => n.id);
+      
+      // Keep current notifications for display inside the popover
+      setDisplayedNotifications(notifications);
+      
+      // Optimistically clear the badge count
+      setNotifications([]); 
+
       const result = await markNotificationsAsRead(notificationIds);
-      if (result.success) {
-        setNotifications([]);
-      } else {
+      if (!result.success) {
         toast({ title: "Error", description: "Failed to mark notifications as read.", variant: "destructive" });
+        // Revert optimistic update on failure
+        setNotifications(displayedNotifications);
       }
     }
   };
@@ -54,12 +64,12 @@ export default function NotificationPopover({ notifications: initialNotification
       <PopoverContent className="w-80 p-0">
         <div className="p-4 border-b">
           <h4 className="font-medium leading-none">Notifications</h4>
-          <p className="text-sm text-muted-foreground">You have {notifications.length} unread messages.</p>
+          <p className="text-sm text-muted-foreground">You have {displayedNotifications.length} unread messages.</p>
         </div>
         <ScrollArea className="h-[280px]">
           <div className="p-2">
-            {notifications.length > 0 ? (
-              notifications.map((notification) => (
+            {displayedNotifications.length > 0 ? (
+              displayedNotifications.map((notification) => (
                 <Link
                   key={notification.id}
                   href={`/dashboard/projects/${notification.projectId}?tab=chat`}
