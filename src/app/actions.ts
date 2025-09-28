@@ -163,14 +163,14 @@ export async function createTask(formData: FormData) {
     }
 
     const db = await getDb();
-    const result = await db.collection<Task>('tasks').insertOne({
+    const result = await db.collection<Omit<Task, 'id' | '_id'>>('tasks').insertOne({
         projectId: new ObjectId(projectId),
         title,
         status: 'To Do',
         assigneeId: assigneeId ? new ObjectId(assigneeId) : undefined,
         dueDate: new Date(dueDate),
         createdAt: new Date(),
-    } as Omit<Task, '_id' | 'id'> as any);
+    });
 
     revalidatePath(`/dashboard/projects/${projectId}`);
     const newTaskDoc = await db.collection<Task>('tasks').findOne({ _id: result.insertedId });
@@ -180,14 +180,13 @@ export async function createTask(formData: FormData) {
     // Return a plain object, converting ObjectIds to strings
     const newTask: Task = {
         id: newTaskDoc._id.toString(),
-        _id: newTaskDoc._id,
         projectId: newTaskDoc.projectId.toString(),
         title: newTaskDoc.title,
         status: newTaskDoc.status,
         assigneeId: newTaskDoc.assigneeId?.toString(),
         dueDate: newTaskDoc.dueDate,
         createdAt: newTaskDoc.createdAt,
-    };
+    } as Task;
     
     return newTask;
 }

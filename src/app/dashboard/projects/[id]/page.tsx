@@ -11,13 +11,14 @@ type ProjectPageProps = {
 };
 
 export default async function ProjectPage({ params }: ProjectPageProps) {
+    const { id } = params;
     const session = await getSession();
     if (!session?.user) {
         redirect('/login');
     }
     const currentUser = session.user as User;
 
-    const projectData = await getProjectById(params.id);
+    const projectData = await getProjectById(id);
     
     if (!projectData) {
         notFound();
@@ -28,7 +29,7 @@ export default async function ProjectPage({ params }: ProjectPageProps) {
          return <p className="p-8 text-center text-muted-foreground">You do not have access to this project.</p>;
     }
     
-    const tasksData = await getTasksByProjectId(params.id);
+    const tasksData = await getTasksByProjectId(id);
     const usersData = await getUsers();
 
     // Manually construct plain objects to pass to the client component
