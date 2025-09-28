@@ -36,13 +36,13 @@ export default function ProgressOverview({ tasks }: { tasks: Task[] }) {
 
     return (
         <Card>
-            <CardHeader className="pb-2">
-                <CardTitle className="font-headline text-xl">Progress Overview</CardTitle>
-                <CardDescription>{completionPercentage}% of tasks completed.</CardDescription>
+            <CardHeader className="pb-2 pt-4">
+                <CardTitle className="font-headline text-lg">Progress Overview</CardTitle>
+                <CardDescription className="text-xs">{completionPercentage}% of tasks completed.</CardDescription>
             </CardHeader>
-            <CardContent>
+            <CardContent className="py-2">
                 <div className="flex flex-row items-center gap-4">
-                    <div className="h-32 w-32 flex-shrink-0">
+                    <div className="h-20 w-20 flex-shrink-0">
                         <ResponsiveContainer width="100%" height="100%">
                             <PieChart>
                                 <Pie
@@ -50,8 +50,8 @@ export default function ProgressOverview({ tasks }: { tasks: Task[] }) {
                                     cx="50%"
                                     cy="50%"
                                     labelLine={false}
-                                    outerRadius={60}
-                                    innerRadius={30}
+                                    outerRadius={35}
+                                    innerRadius={20}
                                     fill="#8884d8"
                                     dataKey="value"
                                 >
@@ -69,15 +69,15 @@ export default function ProgressOverview({ tasks }: { tasks: Task[] }) {
                             </PieChart>
                         </ResponsiveContainer>
                     </div>
-                    <div className="flex flex-wrap gap-x-6 gap-y-2 text-sm">
+                    <div className="flex flex-1 items-center justify-around text-xs">
                         {Object.entries(COLORS).map(([status, color]) => {
                              const count = progressData.find(d => d.name === status)?.value || 0;
                              return (
                                 <div key={status} className="flex items-center">
-                                    <div className="h-3 w-3 rounded-full mr-2" style={{ backgroundColor: color }} />
-                                    <div>
+                                    <div className="h-2 w-2 rounded-full mr-1.5" style={{ backgroundColor: color }} />
+                                    <div className="flex flex-col">
                                         <div className="font-medium">{status}</div>
-                                        <div className="text-muted-foreground">{count} task{count !== 1 && 's'}</div>
+                                        <div className="text-muted-foreground -mt-1">{count}</div>
                                     </div>
                                 </div>
                              )
