@@ -27,6 +27,7 @@ export default function DeadlineNotifications({ tasks }: { tasks: Task[] }) {
         if (!audioReady) return;
 
         const checkDeadlines = () => {
+            let notificationDelay = 0;
             tasks.forEach(task => {
                 if (task.status === 'Completed' || notifiedTasks.current.has(task.id)) {
                     return;
@@ -35,13 +36,21 @@ export default function DeadlineNotifications({ tasks }: { tasks: Task[] }) {
                 const now = new Date();
                 const dueDate = new Date(task.dueDate);
                 
+                const playSound = (note: string) => {
+                    // Schedule the sound to play with a small offset to avoid race conditions
+                    Tone.Transport.scheduleOnce((time) => {
+                        synth.current?.triggerAttackRelease(note, "8n", time);
+                    }, `+${notificationDelay}`);
+                    notificationDelay += 0.1; // Stagger subsequent sounds
+                }
+
                 if (isPast(dueDate)) {
                     toast({
                         title: `Task Overdue: ${task.title}`,
                         description: `This task was due on ${dueDate.toLocaleDateString()}.`,
                         variant: 'destructive',
                     });
-                    synth.current?.triggerAttackRelease("C4", "8n");
+                    playSound("C4");
                     notifiedTasks.current.add(task.id);
                 } else {
                     const hoursUntilDue = differenceInHours(dueDate, now);
@@ -50,17 +59,24 @@ export default function DeadlineNotifications({ tasks }: { tasks: Task[] }) {
                             title: `Task Due Soon: ${task.title}`,
                             description: `This task is due in less than 24 hours.`,
                         });
-                        synth.current?.triggerAttackRelease("E4", "8n");
+                        playSound("E4");
                         notifiedTasks.current.add(task.id);
                     }
                 }
             });
+             if (notificationDelay > 0) {
+                Tone.Transport.start();
+            }
         };
 
         const intervalId = setInterval(checkDeadlines, 60000); // Check every minute
         checkDeadlines(); // Check immediately on load
 
-        return () => clearInterval(intervalId);
+        return () => {
+            clearInterval(intervalId);
+            Tone.Transport.stop();
+            Tone.Transport.cancel();
+        }
     }, [tasks, toast, audioReady]);
 
     const initializeAudio = async () => {
