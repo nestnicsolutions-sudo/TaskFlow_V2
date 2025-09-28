@@ -36,13 +36,13 @@ export default function ProgressOverview({ tasks }: { tasks: Task[] }) {
 
     return (
         <Card>
-            <CardHeader>
-                <CardTitle className="font-headline">Progress Overview</CardTitle>
+            <CardHeader className="pb-2">
+                <CardTitle className="font-headline text-xl">Progress Overview</CardTitle>
                 <CardDescription>{completionPercentage}% of tasks completed.</CardDescription>
             </CardHeader>
             <CardContent>
-                <div className="grid md:grid-cols-2 gap-8 items-center">
-                    <div className="h-48">
+                <div className="flex flex-row items-center gap-4">
+                    <div className="h-32 w-32 flex-shrink-0">
                         <ResponsiveContainer width="100%" height="100%">
                             <PieChart>
                                 <Pie
@@ -50,7 +50,8 @@ export default function ProgressOverview({ tasks }: { tasks: Task[] }) {
                                     cx="50%"
                                     cy="50%"
                                     labelLine={false}
-                                    outerRadius={80}
+                                    outerRadius={60}
+                                    innerRadius={30}
                                     fill="#8884d8"
                                     dataKey="value"
                                 >
@@ -68,7 +69,7 @@ export default function ProgressOverview({ tasks }: { tasks: Task[] }) {
                             </PieChart>
                         </ResponsiveContainer>
                     </div>
-                    <div className="grid grid-cols-2 gap-4 text-sm">
+                    <div className="flex flex-wrap gap-x-6 gap-y-2 text-sm">
                         {Object.entries(COLORS).map(([status, color]) => {
                              const count = progressData.find(d => d.name === status)?.value || 0;
                              return (
