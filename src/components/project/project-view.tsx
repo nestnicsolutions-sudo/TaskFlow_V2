@@ -51,7 +51,7 @@ export default function ProjectView({ initialProject, initialTasks, users, curre
     }, [initialProject, currentUser]);
 
     return (
-        <div className="flex flex-col h-full gap-8">
+        <div className="flex flex-col h-full gap-4">
             <ProjectHeader 
                 project={initialProject} 
                 users={users} 
@@ -63,8 +63,10 @@ export default function ProjectView({ initialProject, initialTasks, users, curre
             <div className="flex items-center gap-2">
                 <AITaskSuggester project={initialProject} tasks={tasks} dispatch={dispatch}/>
             </div>
-            <ProgressOverview tasks={tasks} />
-            <KanbanBoard tasks={tasks} dispatch={dispatch} users={users} userRole={userRole} project={initialProject} />
+            <div className="flex-1 flex flex-col gap-4 overflow-y-auto pb-4">
+                <ProgressOverview tasks={tasks} />
+                <KanbanBoard tasks={tasks} dispatch={dispatch} users={users} userRole={userRole} project={initialProject} />
+            </div>
             <DeadlineNotifications tasks={tasks} />
         </div>
     );
