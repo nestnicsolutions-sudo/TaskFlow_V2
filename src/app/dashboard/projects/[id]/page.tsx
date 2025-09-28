@@ -1,7 +1,6 @@
 import { getProjectById, getTasksByProjectId, getUsers } from "@/app/actions";
 import ProjectView from "@/components/project/project-view";
 import { notFound, redirect } from "next/navigation";
-import { getSession } from "@/lib/auth";
 import type { Project, Task, User } from "@/lib/data";
 
 type ProjectPageProps = {
@@ -11,25 +10,12 @@ type ProjectPageProps = {
 };
 
 export default async function ProjectPage({ params }: ProjectPageProps) {
-    const session = await getSession();
-    if (!session?.user) {
-        redirect('/login');
-    }
-
     const projectData = await getProjectById(params.id);
     
     if (!projectData) {
         notFound();
     }
     
-    // Authorization check
-    const isOwner = projectData.ownerId.toString() === session.user.id;
-    const isCollaborator = projectData.collaborators.some(c => c.userId.toString() === session.user.id);
-    if (!isOwner && !isCollaborator) {
-        redirect('/dashboard');
-        return;
-    }
-
     const tasksData = await getTasksByProjectId(params.id);
     const usersData = await getUsers();
 
@@ -64,11 +50,25 @@ export default async function ProjectPage({ params }: ProjectPageProps) {
         createdAt: u.createdAt,
     }));
     
-    const currentUser = users.find(u => u.id === session.user.id);
+    // Since session is removed, we'll default to the project owner as the current user.
+    const currentUser = users.find(u => u.id === project.ownerId);
 
     if (!currentUser) {
-        // This should not happen if the user has a session
-        redirect('/login');
+        // This might happen if the owner isn't in the users list for some reason.
+        // As a fallback, we can take the first user or handle it gracefully.
+        if (users.length > 0) {
+            const fallbackUser = users[0];
+             return (
+                <ProjectView 
+                    initialProject={project}
+                    initialTasks={tasks}
+                    users={users}
+                    currentUser={fallbackUser}
+                />
+            );
+        }
+        // If no users exist at all, we can't render the view properly.
+        return <p className="p-8 text-center text-muted-foreground">Error: No users found in the system.</p>;
     }
 
     return (
