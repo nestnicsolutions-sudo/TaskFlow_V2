@@ -49,20 +49,20 @@ export default function CreateProjectForm({ children, open, onOpenChange }: { ch
   const [state, formAction] = useActionState(createProjectAction, initialState);
 
   useEffect(() => {
-    if (open && state.success) {
+    if (state.success) {
       onOpenChange(false);
       toast({
         title: "Success",
         description: state.message,
       });
-    } else if (state.message && !state.success) { // only show error toasts
+    } else if (state.message) { // only show error toasts if there's a message
       toast({
         title: "Error",
         description: state.message,
         variant: "destructive",
       });
     }
-  }, [state, open, onOpenChange, toast]);
+  }, [state, onOpenChange, toast]);
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
