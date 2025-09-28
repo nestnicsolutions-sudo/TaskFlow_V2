@@ -31,29 +31,37 @@ export default async function ProjectPage({ params }: ProjectPageProps) {
     const tasksData = await getTasksByProjectId(params.id);
     const usersData = await getUsers();
 
-    // Serialize data before passing to client component
+    // Manually construct plain objects to pass to the client component
     const project: Project = {
-        ...projectData,
         id: projectData.id.toString(),
+        name: projectData.name,
+        description: projectData.description,
         ownerId: projectData.ownerId.toString(),
         collaborators: projectData.collaborators.map(c => ({
             userId: c.userId.toString(),
             role: c.role,
         })),
-        joinRequests: projectData.joinRequests || [],
-    };
+        joinRequests: projectData.joinRequests?.map(r => r.toString()) || [],
+        createdAt: projectData.createdAt,
+    } as Project;
 
     const tasks: Task[] = tasksData.map(t => ({
-        ...t,
         id: t.id.toString(),
         projectId: t.projectId.toString(),
+        title: t.title,
+        status: t.status,
         assigneeId: t.assigneeId?.toString(),
-    }));
+        dueDate: t.dueDate,
+        createdAt: t.createdAt,
+    } as Task));
 
     const users: User[] = usersData.map(u => ({
-        ...u,
         id: u.id.toString(),
-    }));
+        name: u.name,
+        email: u.email,
+        avatarUrl: u.avatarUrl,
+        createdAt: u.createdAt,
+    } as User));
 
     return (
         <ProjectView 

@@ -17,6 +17,7 @@ export default async function DashboardPage() {
   const projectsData = await getProjects(currentUser.id);
   const usersData = await getUsers();
   
+  // Manually construct plain objects to pass to client components
   const projects: Project[] = projectsData.map((p: any) => ({
     id: p.id,
     name: p.name,
