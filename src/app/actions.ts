@@ -558,7 +558,7 @@ export async function markNotificationsAsRead(notificationIds: string[]) {
     
     const db = await getDb();
     await db.collection<Notification>('notifications').updateMany(
-        { _id: { $in: validObjectIds } as any, userId: new ObjectId(session.user.id) },
+        { _id: { $in: validObjectIds } as any },
         { $set: { isRead: true } }
     );
     
