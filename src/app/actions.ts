@@ -98,7 +98,7 @@ export async function getUsers(): Promise<User[]> {
     })) as User[];
 }
 
-export async function createProject(formData: FormData) {
+export async function createProject(prevState: any, formData: FormData) {
     const session = await getSession();
     if (!session?.user) {
       throw new Error("Authentication required.");

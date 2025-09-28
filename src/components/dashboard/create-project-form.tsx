@@ -39,7 +39,7 @@ export default function CreateProjectForm({ children, open, onOpenChange }: { ch
   
   const createProjectAction = async (prevState: FormState, formData: FormData): Promise<FormState> => {
     try {
-      await createProject(formData);
+      await createProject(prevState, formData);
       return { success: true, message: "Project created successfully!" };
     } catch (e: unknown) {
       return { success: false, message: e instanceof Error ? e.message : "An unknown error occurred." };
@@ -107,5 +107,3 @@ export default function CreateProjectForm({ children, open, onOpenChange }: { ch
     </Dialog>
   );
 }
-
-  
