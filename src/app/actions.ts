@@ -235,14 +235,12 @@ export async function suggestTasks(projectDescription: string, existingTasks: Ta
     }
 }
 
-export async function requestToJoinProject(projectId: string) {
-    const users = await getUsers();
-    const requestingUser = users[1] || users[0]; // Fallback to another user if the second doesn't exist
-    if (!requestingUser) {
-        return { success: false, message: 'No users available to make a request.' };
+export async function requestToJoinProject(projectId: string, requestingUserId: string) {
+    if (!requestingUserId || !ObjectId.isValid(requestingUserId)) {
+      return { success: false, message: 'A valid requesting user must be provided.' };
     }
 
-    if (!ObjectId.isValid(projectId)) {
+    if (!projectId || !ObjectId.isValid(projectId)) {
       return { success: false, message: 'Invalid Project ID format.' };
     }
   
@@ -253,7 +251,7 @@ export async function requestToJoinProject(projectId: string) {
       return { success: false, message: 'Project not found.' };
     }
   
-    const userId = new ObjectId(requestingUser.id);
+    const userId = new ObjectId(requestingUserId);
   
     if (project.ownerId.equals(userId)) {
         return { success: false, message: 'You are the owner of this project.' };

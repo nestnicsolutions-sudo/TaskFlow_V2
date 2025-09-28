@@ -33,7 +33,6 @@ export default async function DashboardPage() {
     createdAt: u.createdAt,
   }));
   
-  // In a no-auth context, let's assume the current user owns all projects for the sake of the UI
   const projectsOwned = projects.filter(p => p.ownerId === currentUser.id);
   const totalJoinRequests = projectsOwned.reduce((acc, p) => acc + (p.joinRequests?.length || 0), 0);
 
@@ -53,7 +52,7 @@ export default async function DashboardPage() {
               {totalJoinRequests > 0 && (
                 <ViewRequestsDialog projects={projectsOwned} users={users} requestCount={totalJoinRequests} />
               )}
-              <JoinProjectDialog />
+              <JoinProjectDialog users={users} />
               <CreateProjectButton userId={currentUser.id} />
             </div>
         </div>
