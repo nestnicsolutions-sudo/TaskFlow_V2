@@ -1,7 +1,6 @@
 'use server';
 
 import 'server-only';
-import { SignJWT, jwtVerify } from 'jose';
 import { cookies } from 'next/headers';
 import { redirect } from 'next/navigation';
 import { connectToDatabase } from './mongodb';
@@ -10,9 +9,6 @@ import { z } from 'zod';
 import { revalidatePath } from 'next/cache';
 import type { User } from './data';
 import { ObjectId } from 'mongodb';
-
-const secretKey = process.env.AUTH_SECRET;
-const key = new TextEncoder().encode(secretKey);
 
 const LoginSchema = z.object({
   email: z.string().email(),
@@ -25,25 +21,6 @@ const SignupSchema = z.object({
   password: z.string().min(6, 'Password must be at least 6 characters'),
 });
 
-
-export async function encrypt(payload: any) {
-  return await new SignJWT(payload)
-    .setProtectedHeader({ alg: 'HS256' })
-    .setIssuedAt()
-    .setExpirationTime('1d')
-    .sign(key);
-}
-
-export async function decrypt(input: string): Promise<any> {
-  try {
-    const { payload } = await jwtVerify(input, key, {
-      algorithms: ['HS256'],
-    });
-    return payload;
-  } catch(e) {
-    return null;
-  }
-}
 
 export async function login(prevState: { error: string } | undefined, formData: FormData) {
   const { db } = await connectToDatabase();
@@ -72,11 +49,8 @@ export async function login(prevState: { error: string } | undefined, formData: 
     expires: new Date(Date.now() + 24 * 60 * 60 * 1000), // 24 hours
   };
 
-  // Encrypt the session
-  const encryptedSession = await encrypt(session);
-
-  // Save the session in a cookie
-  cookies().set('session', encryptedSession, {
+  // Store the session as a plain JSON string in the cookie
+  cookies().set('session', JSON.stringify(session), {
     httpOnly: true,
     secure: process.env.NODE_ENV === 'production',
     expires: session.expires,
@@ -128,22 +102,14 @@ export async function getSession() {
   const sessionCookie = (await cookies()).get('session')?.value;
   if (!sessionCookie) return null;
   try {
-    const decrypted = await decrypt(sessionCookie);
-    if (decrypted && decrypted.user) {
-       // Re-serialize user object to ensure it's a plain object
-      return {
-        ...decrypted,
-        user: {
-          id: decrypted.user.id,
-          name: decrypted.user.name,
-          email: decrypted.user.email,
-          avatarUrl: decrypted.user.avatarUrl,
-        } as User
-      };
+    const session = JSON.parse(sessionCookie);
+    // Check if session is expired
+    if (new Date(session.expires) < new Date()) {
+      return null;
     }
-    return null;
+    return session;
   } catch(e) {
-    console.error("Session decryption failed:", e);
+    console.error("Session parsing failed:", e);
     return null;
   }
 }
