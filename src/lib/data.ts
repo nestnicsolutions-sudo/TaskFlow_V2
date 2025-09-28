@@ -26,6 +26,7 @@ export type Project = {
     description: string;
     ownerId: string | ObjectId;
     collaborators: Collaborator[];
+    joinRequests?: (string | ObjectId)[];
     createdAt: Date;
 };
 

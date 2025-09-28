@@ -4,6 +4,8 @@ import { getSession } from "@/lib/auth";
 import { redirect } from "next/navigation";
 import type { Project, User } from "@/lib/data";
 import CreateProjectButton from "@/components/dashboard/create-project-button";
+import JoinProjectDialog from "@/components/dashboard/join-project-dialog";
+import { Button } from "@/components/ui/button";
 
 export default async function DashboardPage() {
   const session = await getSession();
@@ -46,7 +48,10 @@ export default async function DashboardPage() {
                 Your central hub for all ongoing and completed projects.
             </p>
             </div>
-            <CreateProjectButton userId={session.user.id} />
+            <div className="flex items-center gap-2">
+              <JoinProjectDialog />
+              <CreateProjectButton userId={session.user.id} />
+            </div>
         </div>
       </div>
       <div className="flex-1 overflow-y-auto -mx-4 px-4">

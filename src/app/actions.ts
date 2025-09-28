@@ -1,9 +1,10 @@
 
 "use server"
 
+import 'dotenv/config';
 import { revalidatePath } from "next/cache";
 import { suggestSubtasks as suggestSubtasksFlow } from "@/ai/ai-suggest-subtasks";
-import { Project, Task, TaskStatus, User } from "@/lib/data";
+import { Project, Task, TaskStatus, User, Role } from "@/lib/data";
 import { connectToDatabase } from "@/lib/mongodb";
 import { ObjectId } from "mongodb";
 import { getSession } from "@/lib/auth";
@@ -35,6 +36,7 @@ export async function getProjects(): Promise<Project[]> {
             ...c,
             userId: c.userId.toString(),
         })),
+        joinRequests: p.joinRequests?.map((r: any) => r.toString()) || [],
     })) as Project[];
 }
 
@@ -50,6 +52,7 @@ export async function getProjectById(id: string): Promise<Project | null> {
     
     const project: Project = {
         id: projectDoc._id.toString(),
+        _id: projectDoc._id,
         name: projectDoc.name,
         description: projectDoc.description,
         ownerId: projectDoc.ownerId.toString(),
@@ -57,6 +60,7 @@ export async function getProjectById(id: string): Promise<Project | null> {
             userId: c.userId.toString(),
             role: c.role,
         })),
+        joinRequests: projectDoc.joinRequests?.map((r: any) => r.toString()) || [],
         createdAt: projectDoc.createdAt,
     };
 
@@ -114,6 +118,7 @@ export async function createProject(formData: FormData) {
       description,
       ownerId: new ObjectId(ownerId),
       collaborators: [],
+      joinRequests: [],
       createdAt: new Date(),
     });
 
@@ -239,4 +244,111 @@ export async function suggestTasks(projectDescription: string, existingTasks: Ta
         console.error("Error calling AI flow:", error);
         return { success: false, message: "Failed to get AI suggestions." };
     }
+}
+
+export async function requestToJoinProject(projectId: string) {
+    const session = await getSession();
+    if (!session) {
+      return { success: false, message: 'Authentication required.' };
+    }
+    if (!ObjectId.isValid(projectId)) {
+      return { success: false, message: 'Invalid Project ID format.' };
+    }
+  
+    const db = await getDb();
+    const project = await db.collection('projects').findOne({ _id: new ObjectId(projectId) });
+  
+    if (!project) {
+      return { success: false, message: 'Project not found.' };
+    }
+  
+    const userId = new ObjectId(session.user.id);
+  
+    // Check if user is already owner, collaborator, or has a pending request
+    if (project.ownerId.equals(userId)) {
+        return { success: false, message: 'You are the owner of this project.' };
+    }
+    if (project.collaborators.some((c: any) => c.userId.equals(userId))) {
+        return { success: false, message: 'You are already a collaborator on this project.' };
+    }
+    if (project.joinRequests?.some((id: ObjectId) => id.equals(userId))) {
+        return { success: false, message: 'You have already requested to join this project.' };
+    }
+  
+    const result = await db.collection('projects').updateOne(
+      { _id: new ObjectId(projectId) },
+      { $addToSet: { joinRequests: userId } }
+    );
+  
+    if (result.modifiedCount > 0) {
+      revalidatePath('/dashboard');
+      revalidatePath(`/dashboard/projects/${projectId}`);
+      return { success: true };
+    }
+  
+    return { success: false, message: 'Failed to send join request.' };
+}
+
+export async function approveJoinRequest(projectId: string, userId: string, role: Role) {
+    const session = await getSession();
+    if (!session) {
+      return { success: false, message: 'Authentication required.' };
+    }
+    if (!ObjectId.isValid(projectId) || !ObjectId.isValid(userId)) {
+      return { success: false, message: 'Invalid ID.' };
+    }
+  
+    const db = await getDb();
+    const project = await db.collection('projects').findOne({ _id: new ObjectId(projectId) });
+
+    // Ensure the current user is the project owner
+    if (!project || project.ownerId.toString() !== session.user.id) {
+        return { success: false, message: 'Only the project owner can approve requests.' };
+    }
+  
+    // Move user from joinRequests to collaborators
+    const result = await db.collection('projects').updateOne(
+      { _id: new ObjectId(projectId) },
+      {
+        $pull: { joinRequests: new ObjectId(userId) },
+        $addToSet: { collaborators: { userId: new ObjectId(userId), role } },
+      }
+    );
+  
+    if (result.modifiedCount > 0) {
+      revalidatePath(`/dashboard/projects/${projectId}`);
+      return { success: true };
+    }
+  
+    return { success: false, message: 'Failed to approve join request.' };
+}
+  
+export async function denyJoinRequest(projectId: string, userId: string) {
+    const session = await getSession();
+    if (!session) {
+        return { success: false, message: 'Authentication required.' };
+    }
+    if (!ObjectId.isValid(projectId) || !ObjectId.isValid(userId)) {
+        return { success: false, message: 'Invalid ID.' };
+    }
+
+    const db = await getDb();
+    const project = await db.collection('projects').findOne({ _id: new ObjectId(projectId) });
+
+    // Ensure the current user is the project owner
+    if (!project || project.ownerId.toString() !== session.user.id) {
+        return { success: false, message: 'Only the project owner can deny requests.' };
+    }
+
+    const result = await db.collection('projects').updateOne(
+        { _id: new ObjectId(projectId) },
+        { $pull: { joinRequests: new ObjectId(userId) } }
+    );
+
+    if (result.modifiedCount > 0) {
+        revalidatePath(`/dashboard/projects/${projectId}`);
+        return { success: true };
+    }
+
+    return { success: false, message: 'Failed to deny join request.' };
 }

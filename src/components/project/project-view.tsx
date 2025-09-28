@@ -1,12 +1,13 @@
 "use client";
 
 import type { Project, Task, TaskStatus, User } from "@/lib/data";
-import { useReducer, useMemo } from "react";
+import { useReducer, useMemo, useState } from "react";
 import ProjectHeader from "./project-header";
 import KanbanBoard from "./kanban";
 import ProgressOverview from "./progress-overview";
 import DeadlineNotifications from "./deadline-notifications";
 import AITaskSuggester from "./ai-task-suggester";
+import JoinRequests from "./join-requests";
 
 type Action =
     | { type: 'UPDATE_TASK_STATUS'; payload: { taskId: string; newStatus: TaskStatus } }
@@ -43,18 +44,19 @@ type ProjectViewProps = {
 
 export default function ProjectView({ initialProject, initialTasks, users, currentUser }: ProjectViewProps) {
     
+    const [project, setProject] = useState(initialProject);
     const [tasks, dispatch] = useReducer(tasksReducer, initialTasks);
     
     const userRole = useMemo(() => {
-        if (initialProject.ownerId === currentUser.id) return 'admin';
-        const collaborator = initialProject.collaborators.find((c:any) => c.userId === currentUser.id);
+        if (project.ownerId === currentUser.id) return 'admin';
+        const collaborator = project.collaborators.find((c:any) => c.userId === currentUser.id);
         return collaborator ? collaborator.role : 'viewer';
-    }, [initialProject, currentUser]);
+    }, [project, currentUser]);
 
     return (
         <div className="flex flex-col h-full gap-4">
-            <ProjectHeader 
-                project={initialProject} 
+             <ProjectHeader 
+                project={project} 
                 users={users} 
                 currentUser={currentUser} 
                 tasks={tasks} 
@@ -62,14 +64,20 @@ export default function ProjectView({ initialProject, initialTasks, users, curre
                 userRole={userRole} 
             />
             <div className="flex items-center gap-2">
-                <AITaskSuggester project={initialProject} tasks={tasks} dispatch={dispatch}/>
+                <AITaskSuggester project={project} tasks={tasks} dispatch={dispatch}/>
             </div>
             
-            <ProgressOverview tasks={tasks} />
+            {userRole === 'admin' && project.joinRequests && project.joinRequests.length > 0 && (
+                <JoinRequests project={project} users={users} />
+            )}
 
-            <div className="flex-1">
-                <KanbanBoard tasks={tasks} dispatch={dispatch} users={users} userRole={userRole} project={initialProject} />
+            <div className="flex flex-col gap-4 min-h-0 flex-1">
+                <ProgressOverview tasks={tasks} />
+                <div className="flex-1 min-h-0">
+                    <KanbanBoard tasks={tasks} dispatch={dispatch} users={users} userRole={userRole} project={project} />
+                </div>
             </div>
+
 
             <DeadlineNotifications tasks={tasks} />
         </div>
