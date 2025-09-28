@@ -29,27 +29,33 @@ export default function NotificationPopover({ notifications: initialNotification
       setDisplayedNotifications(initialNotifications);
     }
   }, [initialNotifications, open]);
+  
+  const handleMarkAllAsRead = async () => {
+    if (displayedNotifications.length === 0) return;
+
+    const notificationIds = displayedNotifications.map(n => n.id);
+    
+    // Optimistically update UI
+    setNotifications([]);
+    setDisplayedNotifications([]);
+    
+    const result = await markNotificationsAsRead(notificationIds);
+    if (!result.success) {
+      toast({ title: "Error", description: "Failed to mark notifications as read.", variant: "destructive" });
+      // Revert optimistic update on failure
+      setNotifications(displayedNotifications);
+    } else {
+       toast({ title: "Notifications Cleared", description: "All notifications have been marked as read." });
+    }
+  };
+
 
   const handleOpenChange = async (isOpen: boolean) => {
     setOpen(isOpen);
-
-    // When the popover is opened and there are notifications...
-    if (isOpen && notifications.length > 0) {
-      const notificationIds = notifications.map(n => n.id);
-      
-      // Store the notifications to be displayed inside the popover.
+    // When the popover is opened, we will display the notifications.
+    // The badge count will be cleared via the explicit "Mark all as read" button.
+    if (isOpen) {
       setDisplayedNotifications(notifications);
-      
-      // Optimistically clear the notification badge count immediately.
-      setNotifications([]); 
-
-      // Then, send the request to the server to mark them as read.
-      const result = await markNotificationsAsRead(notificationIds);
-      if (!result.success) {
-        toast({ title: "Error", description: "Failed to mark notifications as read.", variant: "destructive" });
-        // If the server fails, revert the optimistic update to show the badge again.
-        setNotifications(displayedNotifications);
-      }
     }
   };
 
@@ -68,7 +74,14 @@ export default function NotificationPopover({ notifications: initialNotification
       </PopoverTrigger>
       <PopoverContent className="w-80 p-0">
         <div className="p-4 border-b">
-          <h4 className="font-medium leading-none">Notifications</h4>
+          <div className="flex justify-between items-center mb-1">
+            <h4 className="font-medium leading-none">Notifications</h4>
+            {displayedNotifications.length > 0 && (
+                 <Button variant="link" size="sm" onClick={handleMarkAllAsRead} className="h-auto p-0 text-xs">
+                    Mark all as read
+                </Button>
+            )}
+          </div>
           <p className="text-sm text-muted-foreground">You have {displayedNotifications.length} unread messages.</p>
         </div>
         <ScrollArea className="h-[280px]">
