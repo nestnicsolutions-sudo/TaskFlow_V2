@@ -4,20 +4,18 @@ import { FolderKanban, LogOut, Settings } from "lucide-react";
 import { SidebarContent, SidebarFooter, SidebarHeader, SidebarMenu, SidebarMenuItem, SidebarMenuButton } from "@/components/ui/sidebar";
 import Header from "@/components/dashboard/header";
 import Logo from "@/components/logo";
-import { getProjects } from "@/app/actions";
-import { getSession, logout } from "@/lib/auth";
-import { redirect } from "next/navigation";
+import { getProjects, getUsers } from "@/app/actions";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
 import { Menu } from "lucide-react";
+import type { User } from "@/lib/data";
 
 export default async function DashboardLayout({ children }: { children: ReactNode }) {
-    const session = await getSession();
-    if (!session) {
-        redirect('/login');
-    }
-    
     const projects = await getProjects();
+    const users = await getUsers();
+
+    // Fallback user if no users are available, though this case should be rare.
+    const currentUser = users[0] || { id: '', name: 'Guest', email: '' };
 
     const sidebarContent = (
         <>
@@ -54,12 +52,12 @@ export default async function DashboardLayout({ children }: { children: ReactNod
             <SidebarFooter>
                 <SidebarMenu>
                      <SidebarMenuItem>
-                         <form action={logout}>
-                            <SidebarMenuButton type="submit" className="w-full">
+                        <SidebarMenuButton asChild>
+                            <Link href="/login" className="w-full">
                                 <LogOut />
-                                <span>Logout</span>
-                             </SidebarMenuButton>
-                         </form>
+                                <span>Login</span>
+                            </Link>
+                        </SidebarMenuButton>
                     </SidebarMenuItem>
                 </SidebarMenu>
             </SidebarFooter>
@@ -86,7 +84,7 @@ export default async function DashboardLayout({ children }: { children: ReactNod
                            {sidebarContent}
                         </SheetContent>
                     </Sheet>
-                    <Header user={session.user}/>
+                    <Header user={currentUser}/>
                 </header>
                 <main className="flex-1 overflow-auto p-4 md:p-6 lg:p-8">
                     {children}

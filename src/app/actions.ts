@@ -7,8 +7,6 @@ import { suggestSubtasks as suggestSubtasksFlow } from "@/ai/ai-suggest-subtasks
 import { Project, Task, TaskStatus, User, Role } from "@/lib/data";
 import { connectToDatabase } from "@/lib/mongodb";
 import { ObjectId } from "mongodb";
-import { getSession } from "@/lib/auth";
-import { redirect } from "next/navigation";
 
 async function getDb() {
     const { db } = await connectToDatabase();
@@ -16,17 +14,8 @@ async function getDb() {
 }
 
 export async function getProjects(): Promise<Project[]> {
-    const session = await getSession();
-    if (!session) {
-        return [];
-    }
     const db = await getDb();
-    const projects = await db.collection('projects').find({
-        $or: [
-            { ownerId: new ObjectId(session.user.id) },
-            { 'collaborators.userId': new ObjectId(session.user.id) }
-        ]
-    }).toArray();
+    const projects = await db.collection('projects').find({}).toArray();
 
     return projects.map(p => ({
         ...p,
@@ -128,7 +117,7 @@ export async function createProject(formData: FormData) {
     
     revalidatePath("/dashboard");
     if (newProject) {
-        redirect(`/dashboard/projects/${newProject._id.toString()}`);
+        revalidatePath(`/dashboard/projects/${newProject._id.toString()}`);
     }
 }
 
@@ -247,10 +236,12 @@ export async function suggestTasks(projectDescription: string, existingTasks: Ta
 }
 
 export async function requestToJoinProject(projectId: string) {
-    const session = await getSession();
-    if (!session) {
-      return { success: false, message: 'Authentication required.' };
+    const users = await getUsers();
+    const requestingUser = users[1] || users[0]; // Fallback to another user if the second doesn't exist
+    if (!requestingUser) {
+        return { success: false, message: 'No users available to make a request.' };
     }
+
     if (!ObjectId.isValid(projectId)) {
       return { success: false, message: 'Invalid Project ID format.' };
     }
@@ -262,9 +253,8 @@ export async function requestToJoinProject(projectId: string) {
       return { success: false, message: 'Project not found.' };
     }
   
-    const userId = new ObjectId(session.user.id);
+    const userId = new ObjectId(requestingUser.id);
   
-    // Check if user is already owner, collaborator, or has a pending request
     if (project.ownerId.equals(userId)) {
         return { success: false, message: 'You are the owner of this project.' };
     }
@@ -290,21 +280,11 @@ export async function requestToJoinProject(projectId: string) {
 }
 
 export async function approveJoinRequest(projectId: string, userId: string, role: Role) {
-    const session = await getSession();
-    if (!session) {
-      return { success: false, message: 'Authentication required.' };
-    }
     if (!ObjectId.isValid(projectId) || !ObjectId.isValid(userId)) {
       return { success: false, message: 'Invalid ID.' };
     }
   
     const db = await getDb();
-    const project = await db.collection('projects').findOne({ _id: new ObjectId(projectId) });
-
-    // Ensure the current user is the project owner
-    if (!project || project.ownerId.toString() !== session.user.id) {
-        return { success: false, message: 'Only the project owner can approve requests.' };
-    }
   
     // Move user from joinRequests to collaborators
     const result = await db.collection('projects').updateOne(
@@ -317,6 +297,7 @@ export async function approveJoinRequest(projectId: string, userId: string, role
   
     if (result.modifiedCount > 0) {
       revalidatePath(`/dashboard/projects/${projectId}`);
+      revalidatePath('/dashboard');
       return { success: true };
     }
   
@@ -324,21 +305,11 @@ export async function approveJoinRequest(projectId: string, userId: string, role
 }
   
 export async function denyJoinRequest(projectId: string, userId: string) {
-    const session = await getSession();
-    if (!session) {
-        return { success: false, message: 'Authentication required.' };
-    }
     if (!ObjectId.isValid(projectId) || !ObjectId.isValid(userId)) {
         return { success: false, message: 'Invalid ID.' };
     }
 
     const db = await getDb();
-    const project = await db.collection('projects').findOne({ _id: new ObjectId(projectId) });
-
-    // Ensure the current user is the project owner
-    if (!project || project.ownerId.toString() !== session.user.id) {
-        return { success: false, message: 'Only the project owner can deny requests.' };
-    }
 
     const result = await db.collection('projects').updateOne(
         { _id: new ObjectId(projectId) },
@@ -347,6 +318,7 @@ export async function denyJoinRequest(projectId: string, userId: string) {
 
     if (result.modifiedCount > 0) {
         revalidatePath(`/dashboard/projects/${projectId}`);
+        revalidatePath('/dashboard');
         return { success: true };
     }
 

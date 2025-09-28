@@ -1,21 +1,16 @@
 import { getProjects, getUsers } from "@/app/actions";
 import ProjectList from "@/components/dashboard/project-list";
-import { getSession } from "@/lib/auth";
-import { redirect } from "next/navigation";
 import type { Project, User } from "@/lib/data";
 import CreateProjectButton from "@/components/dashboard/create-project-button";
 import JoinProjectDialog from "@/components/dashboard/join-project-dialog";
-import { Button } from "@/components/ui/button";
 import ViewRequestsDialog from "@/components/dashboard/view-requests-dialog";
 
 export default async function DashboardPage() {
-  const session = await getSession();
-  if (!session) {
-    redirect('/login');
-  }
-
   const projectsData = await getProjects();
   const usersData = await getUsers();
+  
+  // Since we removed session, we'll pick the first user as the "owner" for display purposes
+  const currentUser = usersData[0] || { id: 'fallback-user-id', name: 'Admin' };
 
   const projects: Project[] = projectsData.map((p: any) => ({
     id: p.id,
@@ -38,7 +33,8 @@ export default async function DashboardPage() {
     createdAt: u.createdAt,
   }));
   
-  const projectsOwned = projects.filter(p => p.ownerId === session.user.id);
+  // In a no-auth context, let's assume the current user owns all projects for the sake of the UI
+  const projectsOwned = projects.filter(p => p.ownerId === currentUser.id);
   const totalJoinRequests = projectsOwned.reduce((acc, p) => acc + (p.joinRequests?.length || 0), 0);
 
   return (
@@ -58,7 +54,7 @@ export default async function DashboardPage() {
                 <ViewRequestsDialog projects={projectsOwned} users={users} requestCount={totalJoinRequests} />
               )}
               <JoinProjectDialog />
-              <CreateProjectButton userId={session.user.id} />
+              <CreateProjectButton userId={currentUser.id} />
             </div>
         </div>
       </div>
