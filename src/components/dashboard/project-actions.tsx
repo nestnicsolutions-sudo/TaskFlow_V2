@@ -18,7 +18,7 @@ export default function ProjectActions({
 }: ProjectActionsProps) {
   return (
     <div className="flex items-center gap-2">
-      {totalJoinrequests > 0 && (
+      {totalJoinRequests > 0 && (
         <ViewRequestsDialog
           projects={projectsOwned}
           users={users}
