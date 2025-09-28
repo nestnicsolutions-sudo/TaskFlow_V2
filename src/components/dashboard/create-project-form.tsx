@@ -13,6 +13,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { createProject } from "@/app/actions";
 import { useActionState, useEffect } from "react";
 import { useToast } from "@/hooks/use-toast";
+import { useFormStatus } from "react-dom";
 
 type FormState = {
   success: boolean;
@@ -24,10 +25,18 @@ const initialState: FormState = {
   message: null,
 };
 
+function SubmitButton() {
+    const { pending } = useFormStatus();
+    return (
+        <Button type="submit" disabled={pending}>
+            {pending ? 'Creating...' : 'Create Project'}
+        </Button>
+    )
+}
+
 export default function CreateProjectForm({ children, open, onOpenChange }: { children: React.ReactNode, open: boolean, onOpenChange: (open: boolean) => void }) {
   const { toast } = useToast();
   
-  // The `createProject` action does not return a value, so we'll wrap it to provide state.
   const createProjectAction = async (prevState: FormState, formData: FormData): Promise<FormState> => {
     try {
       await createProject(formData);
@@ -40,20 +49,20 @@ export default function CreateProjectForm({ children, open, onOpenChange }: { ch
   const [state, formAction] = useActionState(createProjectAction, initialState);
 
   useEffect(() => {
-    if (state.success) {
+    if (open && state.success) {
       onOpenChange(false);
       toast({
         title: "Success",
         description: state.message,
       });
-    } else if (state.message) {
+    } else if (state.message && !state.success) { // only show error toasts
       toast({
         title: "Error",
         description: state.message,
         variant: "destructive",
       });
     }
-  }, [state, onOpenChange, toast]);
+  }, [state, open, onOpenChange, toast]);
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -91,7 +100,7 @@ export default function CreateProjectForm({ children, open, onOpenChange }: { ch
             </div>
           </div>
           <DialogFooter>
-            <Button type="submit">Create Project</Button>
+            <SubmitButton />
           </DialogFooter>
         </form>
       </DialogContent>
