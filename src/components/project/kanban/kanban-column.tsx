@@ -23,13 +23,13 @@ export default function KanbanColumn({ status, tasks, dispatch, users, userRole,
     const config = statusConfig[status];
 
     return (
-        <div className="flex flex-col gap-4 w-72 md:w-auto h-full">
+        <div className="flex flex-col gap-4 w-72 md:w-auto">
             <div className="flex items-center gap-2 p-2 rounded-t-lg bg-secondary">
                 <div className={`w-2.5 h-2.5 rounded-full ${config.color}`} />
                 <h3 className="font-semibold text-sm">{status}</h3>
                 <span className="ml-auto text-xs font-mono bg-muted text-muted-foreground rounded-full px-2 py-0.5">{tasks.length}</span>
             </div>
-            <div className="flex flex-col gap-4 p-2 rounded-b-lg bg-secondary/50 flex-1 overflow-y-auto">
+            <div className="flex flex-col gap-4 p-2 rounded-b-lg bg-secondary/50 flex-1 overflow-y-auto max-h-[20rem]">
                 {tasks.sort((a,b) => new Date(a.dueDate).getTime() - new Date(b.dueDate).getTime()).map(task => (
                     <TaskCard
                         key={task.id}

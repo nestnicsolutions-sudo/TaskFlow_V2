@@ -62,13 +62,13 @@ export default function TaskCard({ task, dispatch, users, userRole, projectId }:
 
     return (
         <Card className="bg-background shadow-md hover:shadow-lg transition-shadow">
-            <CardHeader className="p-4">
+            <CardHeader className="p-3">
                 <CardTitle className="text-base font-semibold">{task.title}</CardTitle>
             </CardHeader>
-            <CardContent className="p-4 pt-0">
+            <CardContent className="p-3 pt-0">
                 <div className="flex items-center justify-between text-sm text-muted-foreground">
-                    <div className={cn("flex items-center gap-2", isOverdue && "text-destructive font-medium")}>
-                        <CalendarIcon className="h-4 w-4" />
+                    <div className={cn("flex items-center gap-2 text-xs", isOverdue && "text-destructive font-medium")}>
+                        <CalendarIcon className="h-3 w-3" />
                         <span>{formattedDate}</span>
                     </div>
                     {assignee && (
@@ -80,16 +80,15 @@ export default function TaskCard({ task, dispatch, users, userRole, projectId }:
                 </div>
             </CardContent>
             {canManage && (
-                <CardFooter className="p-2 bg-secondary/30 flex justify-between">
+                <CardFooter className="p-1 bg-secondary/30 flex justify-between">
                     {task.status === 'Completed' ? (
                          <Button 
                             variant="ghost" 
                             size="sm"
-                            className="w-full text-destructive hover:bg-destructive/10 hover:text-destructive"
+                            className="w-full text-destructive hover:bg-destructive/10 hover:text-destructive h-7"
                             onClick={handleDelete}
                         >
-                            <Trash2 className="h-4 w-4 mr-2" />
-                            Delete
+                            <Trash2 className="h-4 w-4" />
                         </Button>
                     ) : (
                         <>
