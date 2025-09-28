@@ -321,7 +321,7 @@ export async function requestToJoinProject(projectId: string) {
   
     const userId = new ObjectId(requestingUserId);
   
-    if (project.ownerId.equals(userId)) {
+    if (project.ownerId.toString() === requestingUserId) {
         return { success: false, message: 'You are the owner of this project.' };
     }
     if (project.collaborators.some(c => c.userId.toString() === requestingUserId)) {
