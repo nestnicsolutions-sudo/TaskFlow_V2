@@ -11,19 +11,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { createProject } from "@/app/actions";
-import { useEffect } from "react";
 import { useToast } from "@/hooks/use-toast";
-import { useFormState, useFormStatus } from "react-dom";
-
-type FormState = {
-  success: boolean;
-  message: string | null;
-}
-
-const initialState: FormState = {
-  success: false,
-  message: null,
-};
+import { useFormStatus } from "react-dom";
 
 function SubmitButton() {
     const { pending } = useFormStatus();
@@ -37,32 +26,22 @@ function SubmitButton() {
 export default function CreateProjectForm({ children, open, onOpenChange }: { children: React.ReactNode, open: boolean, onOpenChange: (open: boolean) => void }) {
   const { toast } = useToast();
   
-  const createProjectAction = async (prevState: FormState, formData: FormData): Promise<FormState> => {
+  const formAction = async (formData: FormData) => {
     try {
-      await createProject(prevState, formData);
-      return { success: true, message: "Project created successfully!" };
-    } catch (e: unknown) {
-      return { success: false, message: e instanceof Error ? e.message : "An unknown error occurred." };
-    }
-  };
-
-  const [state, formAction] = useFormState(createProjectAction, initialState);
-
-  useEffect(() => {
-    if (state.success) {
+      await createProject(null, formData);
       onOpenChange(false);
       toast({
         title: "Success",
-        description: state.message,
+        description: "Project created successfully!",
       });
-    } else if (state.message) { // only show error toasts if there's a message
+    } catch (e: unknown) {
       toast({
         title: "Error",
-        description: state.message,
+        description: e instanceof Error ? e.message : "An unknown error occurred.",
         variant: "destructive",
       });
     }
-  }, [state, onOpenChange, toast]);
+  };
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
