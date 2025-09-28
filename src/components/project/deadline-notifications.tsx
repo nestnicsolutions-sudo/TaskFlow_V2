@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useEffect, useState, useRef } from 'react';
@@ -6,13 +7,21 @@ import type { Task } from '@/lib/data';
 import { differenceInHours, isPast } from 'date-fns';
 import * as Tone from 'tone';
 import { Button } from '../ui/button';
-import { BellRing } from 'lucide-react';
+import { BellRing, BellOff } from 'lucide-react';
 
 export default function DeadlineNotifications({ tasks }: { tasks: Task[] }) {
     const { toast } = useToast();
     const notifiedTasks = useRef(new Set<string>());
     const [audioReady, setAudioReady] = useState(false);
     const synth = useRef<Tone.Synth | null>(null);
+
+    useEffect(() => {
+        // On component mount, check if notifications were previously enabled.
+        const storedPreference = localStorage.getItem('notificationsEnabled');
+        if (storedPreference === 'true') {
+            initializeAudio();
+        }
+    }, []);
 
     useEffect(() => {
         if (!audioReady) return;
@@ -49,26 +58,48 @@ export default function DeadlineNotifications({ tasks }: { tasks: Task[] }) {
         };
 
         const intervalId = setInterval(checkDeadlines, 60000); // Check every minute
+        checkDeadlines(); // Check immediately on load
+
         return () => clearInterval(intervalId);
     }, [tasks, toast, audioReady]);
 
-    const handleEnableAudio = async () => {
-        await Tone.start();
+    const initializeAudio = async () => {
+        if (Tone.context.state !== 'running') {
+            await Tone.start();
+        }
         synth.current = new Tone.Synth().toDestination();
         setAudioReady(true);
+    };
+
+    const handleEnableAudio = async () => {
+        await initializeAudio();
+        localStorage.setItem('notificationsEnabled', 'true');
         toast({ title: 'Notifications Enabled', description: 'You will now receive deadline alerts.' });
     };
 
-    if (audioReady) {
-        return null; // Component is active in the background
-    }
+    const handleDisableAudio = () => {
+        if (synth.current) {
+            synth.current.dispose();
+            synth.current = null;
+        }
+        setAudioReady(false);
+        localStorage.setItem('notificationsEnabled', 'false');
+        toast({ title: 'Notifications Disabled', description: 'You will no longer receive deadline alerts.' });
+    };
 
     return (
         <div className="fixed bottom-4 right-4 z-50">
-            <Button onClick={handleEnableAudio}>
-                <BellRing className="mr-2 h-4 w-4" />
-                Enable Notifications
-            </Button>
+            {audioReady ? (
+                <Button onClick={handleDisableAudio} variant="outline">
+                    <BellOff className="mr-2 h-4 w-4" />
+                    Disable Notifications
+                </Button>
+            ) : (
+                <Button onClick={handleEnableAudio}>
+                    <BellRing className="mr-2 h-4 w-4" />
+                    Enable Notifications
+                </Button>
+            )}
         </div>
     );
 }
